@@ -37,4 +37,12 @@ public interface AssetRepository extends JpaRepository<Asset, UUID>, JpaSpecific
     // scans), d'ou des methodes retournant la liste plutot qu'un simple COUNT.
     List<Asset> findBySiteIdAndDeletedFalse(UUID siteId);
     List<Asset> findBySiteIdAndZoneIdAndDeletedFalse(UUID siteId, UUID zoneId);
+
+    // Phase 9 (Reporting) : base commune du tableau de bord et des rapports
+    // "par site/categorie/etat/service/utilisateur/non etiquetees/non
+    // inventoriees" - toujours restreinte au parc actif (non archive), les
+    // regroupements/filtres complementaires se font en Java (DashboardService,
+    // ReportService), meme discipline que InventoryCampaignService.progress()
+    // en Phase 7 plutot qu'une requete d'agregation SQL par indicateur.
+    List<Asset> findByDeletedFalse();
 }

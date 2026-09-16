@@ -13,6 +13,7 @@ import { InventoryCampaignsPage } from '@/pages/InventoryCampaignsPage'
 import { InventoryCampaignDetailPage } from '@/pages/InventoryCampaignDetailPage'
 import { AnomaliesPage } from '@/pages/AnomaliesPage'
 import { MouvementsPage } from '@/pages/MouvementsPage'
+import { ReportsPage } from '@/pages/ReportsPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 
 export function AppRoutes() {
@@ -34,10 +35,7 @@ export function AppRoutes() {
           <Route path="anomalies" element={<AnomaliesPage />} />
           <Route path="sites" element={<ReferentielPage />} />
           <Route path="utilisateurs" element={<UsersPage />} />
-          <Route
-            path="rapports"
-            element={<PlaceholderPage title="Rapports" phase="Phase 9 — Reporting" />}
-          />
+          <Route path="rapports" element={<ReportsPage />} />
           <Route
             path="administration"
             element={<PlaceholderPage title="Administration" phase="Phase 10 — Qualité (journal d'audit)" />}
