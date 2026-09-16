@@ -38,7 +38,14 @@ public class AttachmentController {
         MediaType mediaType = file.contentType() != null ? MediaType.parseMediaType(file.contentType()) : MediaType.APPLICATION_OCTET_STREAM;
         return ResponseEntity.ok()
                 .contentType(mediaType)
+                // Phase 10 (revue securite) : le contenu servi ici est deja
+                // valide a l'upload (InventoryAnomalyService.attachPhoto -
+                // liste blanche de types raster), mais nosniff est une
+                // defense en profondeur peu couteuse contre toute tentative
+                // du navigateur de reinterpreter le corps de la reponse
+                // selon un type different du Content-Type declare.
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .header("X-Content-Type-Options", "nosniff")
                 .body(file.content());
     }
 }

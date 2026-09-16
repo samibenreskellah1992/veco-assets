@@ -140,6 +140,12 @@ public class InventoryScanService {
                             + (hasText(request.comment()) ? " - " + request.comment() : ""),
                     scannedBy);
             auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "assets", asset.getId(), null, scanMapper.toDto(scan));
+            // Cf. commentaire sur la branche NON_REFERENCEE plus haut : l'anomalie
+            // elle-meme merite sa propre ligne d'audit (entite inventory_anomalies),
+            // en plus de celle du scan qui l'a declenchee - trouve/corrige Phase 10
+            // (revue de couverture de l'audit trail), cette branche et celle plus
+            // bas (ANOMALIE generique) ne l'enregistraient pas jusqu'ici.
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "inventory_anomalies", anomaly.getId(), null, anomalyMapper.toDto(anomaly));
             return new ScanResponse(true, scanMapper.toDto(scan), anomalyMapper.toDto(anomaly));
         }
 
@@ -155,6 +161,10 @@ public class InventoryScanService {
         }
 
         auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "assets", asset.getId(), null, scanMapper.toDto(scan));
+        if (anomaly != null) {
+            // Cf. commentaire equivalent sur la branche MAUVAISE_LOCALISATION ci-dessus.
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "inventory_anomalies", anomaly.getId(), null, anomalyMapper.toDto(anomaly));
+        }
         return new ScanResponse(true, scanMapper.toDto(scan), anomaly != null ? anomalyMapper.toDto(anomaly) : null);
     }
 

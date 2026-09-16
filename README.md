@@ -4,7 +4,7 @@ Plateforme de gestion, d'étiquetage, d'inventaire et de traçabilité des immob
 
 > Processus cible : RECENSEMENT → VÉRIFICATION → CODIFICATION → ÉTIQUETAGE → AFFECTATION → INVENTAIRE → CONTRÔLE → MISE À JOUR DU RÉFÉRENTIEL
 
-Ce dépôt en est à la **Phase 9 — Reporting** (voir `docs/ROADMAP.md`). Le backend et le frontend démarrent, la base de données Flyway est câblée (Phase 2), l'authentification JWT et le contrôle d'accès par rôle/permission sont en place (Phase 3, avec une vraie page de connexion côté frontend), l'administration du référentiel (sites, bâtiments, étages, zones, localisations, catégories, formats d'étiquette, utilisateurs) est utilisable de bout en bout (Phase 4), le registre des immobilisations (création, modification, archivage, recherche/filtres/tri/pagination, fiche détaillée avec historique d'état/statut et d'affectation) l'est également (Phase 5), la génération d'étiquettes (sélection d'immobilisations, PDF réel avec QR code — et code-barres selon le format — aux dimensions administrables du format choisi) l'est aussi (Phase 6), les campagnes d'inventaire (workflow de statut, scan d'immobilisations avec vérification d'appartenance à la campagne, déclaration d'anomalies avec photo) le sont également (Phase 7), les mouvements d'immobilisation (affectation, transfert inter-site, changement de localisation/service/utilisateur, maintenance, sortie, réforme — workflow Demande → Validation → Exécution → Historisation) le sont aussi (Phase 8), et le tableau de bord (indicateurs réels, répartitions par site/catégorie/état, activité récente) ainsi que le module `/rapports` (11 types de rapport, exports CSV/Excel/PDF respectant les filtres appliqués) le sont désormais également (Phase 9). Le module restant (qualité — tests, audit, responsive) n'est pas encore développé — c'est la phase suivante. Voir `docs/ROADMAP.md` section 13 pour les limites de vérification propres à l'environnement de développement utilisé jusqu'ici (Maven Central et Docker inaccessibles ; les migrations et la logique métier ont pu être vérifiées en SQL réel — dont des bugs réels trouvés et corrigés en Phase 7 (progression de campagne) —, le frontend a pu être compilé et lint-vérifié pour de vrai, et les nouvelles dépendances de génération de document — ZXing/PDFBox en Phase 6, Apache POI en Phase 9 — n'ont pu être vérifiées que par revue manuelle de leur API, pas par compilation réelle).
+Ce dépôt en est à la **Phase 10 — Qualité** (voir `docs/ROADMAP.md`), la dernière phase du prompt maître V1. Le backend et le frontend démarrent, la base de données Flyway est câblée (Phase 2), l'authentification JWT et le contrôle d'accès par rôle/permission sont en place (Phase 3, avec une vraie page de connexion côté frontend), l'administration du référentiel (sites, bâtiments, étages, zones, localisations, catégories, formats d'étiquette, utilisateurs) est utilisable de bout en bout (Phase 4), le registre des immobilisations (création, modification, archivage, recherche/filtres/tri/pagination, fiche détaillée avec historique d'état/statut et d'affectation) l'est également (Phase 5), la génération d'étiquettes (sélection d'immobilisations, PDF réel avec QR code — et code-barres selon le format — aux dimensions administrables du format choisi) l'est aussi (Phase 6), les campagnes d'inventaire (workflow de statut, scan d'immobilisations avec vérification d'appartenance à la campagne, déclaration d'anomalies avec photo) le sont également (Phase 7), les mouvements d'immobilisation (affectation, transfert inter-site, changement de localisation/service/utilisateur, maintenance, sortie, réforme — workflow Demande → Validation → Exécution → Historisation) le sont aussi (Phase 8), le tableau de bord (indicateurs réels, répartitions par site/catégorie/état, activité récente) ainsi que le module `/rapports` (11 types de rapport, exports CSV/Excel/PDF respectant les filtres appliqués) le sont aussi (Phase 9), et la Phase 10 ajoute des tests (backend : 38 unitaires + 12 d'intégration, écrits mais non exécutés ici ; frontend : 29 tests Vitest, **réellement exécutés avec succès**), une revue de sécurité (`docs/SECURITY.md`), l'élimination des N+1 les plus significatifs (`@EntityGraph`), un correctif d'audit trail (scan hors périmètre) et une navigation mobile enfin responsive (tiroir hors-champ sous 1024px). Voir `docs/ROADMAP.md` section 13 pour les limites de vérification propres à l'environnement de développement utilisé jusqu'ici (Maven Central et Docker inaccessibles ; les migrations et la logique métier ont pu être vérifiées en SQL réel — dont des bugs réels trouvés et corrigés en Phase 7 (progression de campagne) —, le frontend a pu être compilé, lint-vérifié et, depuis la Phase 10, testé pour de vrai, et les nouvelles dépendances de génération de document — ZXing/PDFBox en Phase 6, Apache POI en Phase 9 — n'ont pu être vérifiées que par revue manuelle de leur API, pas par compilation réelle).
 
 ## 1. Présentation
 
@@ -105,6 +105,20 @@ npm run dev
 
 Le frontend démarre sur http://localhost:5173 et proxifie `/api` vers `http://localhost:8080` (voir `frontend/vite.config.ts`).
 
+### Tests (Phase 10)
+
+```bash
+cd backend
+mvn test                 # unitaires (Mockito) + intégration (Testcontainers, nécessite Docker)
+```
+
+```bash
+cd frontend
+npm run test              # Vitest — 29 tests, réellement exécutés dans cet environnement de développement (voir docs/ROADMAP.md section 13)
+```
+
+Les tests backend (38 unitaires + 12 d'intégration, Phase 10, plus `AuthenticationIntegrationTest` de la Phase 3) n'ont **jamais pu être exécutés** dans l'environnement où ce dépôt a été développé (ni Maven ni démon Docker accessibles) — écrits et relus avec rigueur, `mvn test` reste à lancer en priorité sur un poste avec Docker avant toute mise en production. Les tests frontend, eux, ont réellement tourné ici (`npm run test` → `vitest run`) et sont verts.
+
 ## 7. Migrations et données de démonstration
 
 - Migrations de schéma : Flyway, `backend/src/main/resources/db/migration/V2__*.sql` à `V9__*.sql` (Phase 2) — hiérarchie de localisation (sites/bâtiments/étages/zones/localisations), RBAC (rôles/permissions/utilisateurs), catégories et formats d'étiquette, immobilisations, historique (affectations/mouvements/changements d'état), inventaire (campagnes/scans/anomalies), pièces jointes, audit trail et paramètres. `V1__init.sql` (Phase 1) ne fait qu'activer l'extension `pgcrypto`. `V10__referentiel_permissions.sql` et `V11__audit_action_suppression.sql` (Phase 4) ajoutent les permissions `REFERENTIEL_MANAGE`/`USER_MANAGE` et la valeur d'audit `SUPPRESSION`. `V12__etiquetage_permissions.sql` (Phase 6) ajoute les permissions `ETIQUETTE_GENERATE` (module `ETIQUETAGE`, accordée à `ADMIN` et `GESTIONNAIRE_PATRIMOINE`) et `ETIQUETTE_MANAGE` (module `ADMIN`, réservée à `ADMIN`). `V13__asset_movements_service_fields.sql` (Phase 8) ajoute six colonnes texte (`from_direction`/`to_direction`/`from_department`/`to_department`/`from_service`/`to_service`) sur `asset_movements`, symétriques aux colonnes site/local/utilisateur déjà présentes depuis la Phase 2. La Phase 9 (Reporting) n'ajoute **aucune migration** : `REPORT_VIEW`/`REPORT_EXPORT` (Phase 2) existaient déjà, et le tableau de bord/les rapports ne font que lire les tables existantes.
@@ -134,7 +148,7 @@ Créés par le seed (Phase 2), et l'authentification (`POST /api/auth/login`, Ph
 
 Documentation interactive : `/swagger-ui.html` (spec OpenAPI sur `/v3/api-docs`).
 
-Endpoints disponibles à ce stade (Phases 1-9) :
+Endpoints disponibles à ce stade (Phases 1-9 — la Phase 10 n'ajoute aucun nouvel endpoint, uniquement des tests/durcissements sur l'existant) :
 
 | Méthode | Chemin | Accès | Description |
 |---|---|---|---|
@@ -197,7 +211,8 @@ Toute autre route est protégée par défaut (`anyRequest().authenticated()`) : 
 veco-assets/
 ├── docs/
 │   ├── ARCHITECTURE.md
-│   └── ROADMAP.md
+│   ├── ROADMAP.md
+│   └── SECURITY.md    revue de sécurité Phase 10
 ├── backend/            Spring Boot (Maven)
 ├── frontend/           React (Vite)
 ├── docker-compose.yml
@@ -229,7 +244,31 @@ veco-assets/
 | `GET /api/reports/{type}/export` renvoie `403 Forbidden` alors que `GET /api/reports/{type}` fonctionne | Le compte a `REPORT_VIEW` mais pas `REPORT_EXPORT` (cas de `RESPONSABLE_SITE`/`RESPONSABLE_SERVICE`/`CONSULTATION`) | Voulu (Phase 9) — consulter un rapport à l'écran et en télécharger un fichier sont deux permissions distinctes |
 | Le rapport `REFORMES` affiche `-` sur la date/le motif de réforme pour une immobilisation | L'immobilisation est reformée depuis le jeu de données de démonstration (Phase 2), sans mouvement `REFORME` associé | Voulu (Phase 9) — seule une réforme réalisée via le workflow de mouvement (Phase 8) porte une date/un motif réels, voir `docs/ARCHITECTURE.md` section 6 |
 
-## 12. Notes pour la suite
+## 12. Parcours de bout en bout (checklist)
+
+Le prompt maître définit un parcours cible en 19 étapes (RECENSEMENT → VÉRIFICATION → CODIFICATION → ÉTIQUETAGE → AFFECTATION → INVENTAIRE → CONTRÔLE → MISE À JOUR DU RÉFÉRENTIEL, décliné en actions concrètes). **Avertissement honnête** : la checklist ci-dessous correspond à ce que le code de ce dépôt permet, vérifié endpoint par endpoint et écran par écran au fil des Phases 3 à 9 (voir `docs/ROADMAP.md` pour le détail phase par phase) — elle n'a **pas** été rejouée sur une application réellement démarrée dans l'environnement où ce dépôt a été développé (Maven Central et Docker tous deux inaccessibles ici, voir `docs/ROADMAP.md` section 13). À dérouler sur un poste/CI avec Docker et un accès Maven Central normal, dans l'ordre, avant toute mise en production :
+
+1. `docker compose up -d` (ou lancement manuel backend/frontend/PostgreSQL, section 5/6) démarre les trois services sans erreur.
+2. Connexion (`/login`) avec un compte de démonstration (section 8) réussit, redirige vers le tableau de bord, et le menu affiche uniquement les entrées permises par le rôle connecté.
+3. Référentiel (`/sites`) : créer un site, un bâtiment, un étage, une zone, une localisation, une catégorie — chacun apparaît immédiatement dans les listes déroulantes des formulaires Immobilisation/Inventaire.
+4. Utilisateurs (`/utilisateurs`, `ADMIN`) : créer un utilisateur, lui affecter un rôle, vérifier que son menu change en conséquence à sa connexion.
+5. Immobilisations (`/immobilisations/nouveau`) : créer une immobilisation — le code `VECO-IMM-XXXXXX` est généré automatiquement (jamais saisi), état `NEUF`, statut `EN_STOCK` par défaut.
+6. Fiche immobilisation (`/immobilisations/:id`) : modifier l'état physique ou le statut, vérifier qu'une ligne apparaît dans l'onglet historique d'état.
+7. Formats d'étiquette (`/sites`, onglet dédié) : vérifier les 3 formats de démonstration, ou en créer un nouveau (dimensions mm, contenu affiché).
+8. Étiquetage (`/etiquetage`) : sélectionner une ou plusieurs immobilisations non étiquetées, générer les étiquettes — un vrai PDF s'ouvre (QR code + éventuellement code-barres), `assets.labeled` passe à `true`.
+9. Vérifier que le PDF généré s'ouvre correctement dans un lecteur PDF réel et que le QR code scanné (téléphone) redonne bien le code immobilisation, rien d'autre.
+10. Mouvements (`/mouvements`) : demander une affectation initiale sur l'immobilisation créée à l'étape 5 — vérifier qu'elle reste `EN_STOCK` tant que le mouvement n'est que `DEMANDE`.
+11. Valider puis exécuter ce mouvement (`GESTIONNAIRE_PATRIMOINE`/`ADMIN`) — vérifier que le statut ne passe à `EN_SERVICE` (et l'affectation courante ne change) qu'à l'exécution, jamais avant.
+12. Inventaire (`/inventaires`) : créer une campagne sur le site de l'immobilisation, la faire avancer jusqu'à `EN_COURS`.
+13. Onglet Scanner : scanner (douchette/caméra configurée en sortie clavier, ou saisie manuelle) le code de l'immobilisation — résultat `PRESENT`, progression de la campagne mise à jour immédiatement.
+14. Scanner un code inexistant, puis une immobilisation d'un autre site — vérifier respectivement une anomalie `NON_REFERENCEE` et `MAUVAISE_LOCALISATION` créées automatiquement.
+15. Anomalies (`/anomalies`) : ajouter une photo à une anomalie, changer son statut vers `RESOLUE`.
+16. Clôturer la campagne (`INVENTAIRE_VALIDATE`) — vérifier qu'un nouveau scan sur cette campagne est bien rejeté (`422`).
+17. Tableau de bord (`/`) : vérifier que les indicateurs (totaux, étiquetées/inventoriées, anomalies ouvertes, répartitions) reflètent bien toutes les actions ci-dessus.
+18. Rapports (`/rapports`) : consulter `PAR_SITE` et `MOUVEMENTS`, vérifier que les filtres pertinents s'affichent selon le type choisi, puis exporter en CSV/Excel/PDF (`REPORT_EXPORT`) — comparer les trois fichiers téléchargés au tableau affiché à l'écran (doivent être identiques, même méthode de génération des deux côtés, voir `docs/ARCHITECTURE.md` section 6).
+19. Se connecter avec un compte `CONSULTATION` : vérifier que la création/modification/export sont bien refusés côté backend (`403`), pas seulement masqués côté frontend — puis réduire la fenêtre du navigateur sous 1024px de large et vérifier le tiroir de navigation mobile (bouton hamburger, overlay, fermeture au clic sur un lien, Phase 10).
+
+## 13. Notes pour la suite
 
 - Ne pas contourner l'ordre des phases (`docs/ROADMAP.md`) : chaque phase doit compiler, migrer et démarrer réellement avant de passer à la suivante.
 - Toute règle métier (unicité de code/série, immobilisation réformée non ré-affectable, campagne clôturée sans nouveaux scans, etc.) se contrôle côté backend, jamais uniquement côté frontend.
@@ -240,4 +279,5 @@ veco-assets/
 - La progression d'une campagne (immobilisations scannées/restantes) est toujours recalculée à la demande à partir des scans réels croisés avec le périmètre, jamais un compteur stocké — voir `docs/ARCHITECTURE.md` section 6 pour le bug réel trouvé et corrigé sur ce point en Phase 7.
 - Un mouvement d'immobilisation (Phase 8) ne modifie jamais `assets` directement à la demande ou à la validation : seule l'exécution (`MovementService.execute`, statut `VALIDE` → `EXECUTE`) applique l'effet réel, après revérification des règles métier — jamais de confiance aveugle dans l'état capturé à la demande, voir `docs/ARCHITECTURE.md` section 6.
 - Chaque indicateur du tableau de bord et chaque ligne de rapport (Phase 9) est recalculé à la demande depuis les tables existantes, jamais un chiffre stocké — et le même calcul (`ReportResultDto`) alimente à la fois l'écran et les exports CSV/Excel/PDF, ce qui rend impossible toute divergence entre ce qui s'affiche et ce qui se télécharge, voir `docs/ARCHITECTURE.md` section 6.
-- Avant la Phase 10 : lancer `mvn test` (avec Docker) dans un environnement normal pour confirmer les Phases 2 à 9 côté backend, en particulier la génération réelle du PDF via ZXing/PDFBox (Phase 6) et le fichier Excel via Apache POI (Phase 9, voir `docs/ROADMAP.md` section 13) — ce sont les points les plus incertains de tout le code livré jusqu'ici, faute de compilation réelle possible dans cet environnement.
+- La Phase 10 (Qualité, dernière phase V1) ajoute 38 tests unitaires + 12 tests d'intégration backend (écrits, non exécutés ici), 29 tests frontend Vitest (**réellement exécutés, tous verts**), une revue de sécurité (`docs/SECURITY.md`), l'élimination des N+1 les plus significatifs par `@EntityGraph`, un correctif d'audit trail et un tiroir de navigation mobile — voir `docs/ROADMAP.md` Phase 10 pour le détail complet et la section 12 ci-dessus pour la checklist de parcours de bout en bout.
+- Avant toute mise en production : lancer `mvn test` (avec Docker) dans un environnement normal pour confirmer les Phases 2 à 10 côté backend — en particulier la génération réelle du PDF via ZXing/PDFBox (Phase 6), le fichier Excel via Apache POI (Phase 9) et l'ensemble des 50 tests écrits en Phase 10, jamais exécutés dans cet environnement (voir `docs/ROADMAP.md` section 13) — puis dérouler la checklist de la section 12 sur l'application réellement démarrée.

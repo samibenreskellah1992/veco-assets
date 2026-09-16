@@ -7,6 +7,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.NamedAttributeNode;
+import jakarta.persistence.NamedEntityGraph;
+import jakarta.persistence.NamedSubgraph;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,12 +25,33 @@ import java.time.LocalDate;
  * affectation, etat, statut) doit s'accompagner d'une ecriture dans
  * {@link AssetMovement} et/ou {@link AssetStatusHistory} par le service
  * layer ; cette entite ne porte que l'etat courant.
+ *
+ * <p>Phase 10 : {@code Asset.listGraph} regroupe toutes les associations
+ * *-to-one qu'un ecran de liste/rapport derefence habituellement (voir
+ * {@code AssetRepository}) - une seule requete JOIN FETCH plutot qu'une
+ * requete par association et par ligne (optimisation N+1).</p>
  */
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
 @Table(name = "assets")
+@NamedEntityGraph(
+        name = "Asset.listGraph",
+        attributeNodes = {
+                @NamedAttributeNode("category"),
+                @NamedAttributeNode("site"),
+                @NamedAttributeNode("building"),
+                @NamedAttributeNode("floor"),
+                @NamedAttributeNode("zone"),
+                @NamedAttributeNode("location"),
+                @NamedAttributeNode(value = "currentUser", subgraph = "currentUser.site"),
+                @NamedAttributeNode("responsibleUser")
+        },
+        subgraphs = {
+                @NamedSubgraph(name = "currentUser.site", attributeNodes = @NamedAttributeNode("site"))
+        }
+)
 public class Asset extends BaseEntity {
 
     // --- Identification ---------------------------------------------------

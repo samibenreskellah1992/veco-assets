@@ -72,7 +72,7 @@ public class MovementController {
 
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasAuthority('MOUVEMENT_VALIDATE')")
-    public MovementDto reject(@PathVariable UUID id, @RequestBody(required = false) MovementRejectRequest request) {
+    public MovementDto reject(@PathVariable UUID id, @Valid @RequestBody(required = false) MovementRejectRequest request) {
         return movementService.reject(id, request);
     }
 

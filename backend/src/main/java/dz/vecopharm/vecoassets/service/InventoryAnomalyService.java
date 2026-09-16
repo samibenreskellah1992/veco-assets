@@ -39,6 +39,18 @@ public class InventoryAnomalyService {
 
     private static final Set<AnomalyStatus> TERMINAL_STATUSES = EnumSet.of(AnomalyStatus.RESOLUE, AnomalyStatus.REJETEE);
 
+    /**
+     * Types MIME reellement acceptes pour une photo d'anomalie (Phase 10,
+     * revue securite). Un simple {@code startsWith("image/")} accepterait
+     * aussi {@code image/svg+xml} : un SVG peut embarquer du {@code
+     * <script>}, et {@code AttachmentController.download} le sert avec
+     * {@code Content-Disposition: inline} - un vecteur XSS stocke classique.
+     * Une photo prise depuis un telephone est toujours un raster (jpeg/png/
+     * webp/gif/heic) : exclure le SVG ne retire aucun cas d'usage reel.
+     */
+    private static final Set<String> ALLOWED_PHOTO_CONTENT_TYPES = Set.of(
+            "image/jpeg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif");
+
     private final InventoryAnomalyRepository anomalyRepository;
     private final AttachmentRepository attachmentRepository;
     private final AttachmentStorageService attachmentStorageService;
@@ -96,8 +108,8 @@ public class InventoryAnomalyService {
     @Transactional
     public AttachmentDto attachPhoto(UUID anomalyId, MultipartFile file) {
         InventoryAnomaly anomaly = getOrThrow(anomalyId);
-        if (file == null || file.getContentType() == null || !file.getContentType().startsWith("image/")) {
-            throw new BusinessRuleException("Seules les images (photo) peuvent etre jointes a une anomalie");
+        if (file == null || file.getContentType() == null || !ALLOWED_PHOTO_CONTENT_TYPES.contains(file.getContentType().toLowerCase())) {
+            throw new BusinessRuleException("Seules les photos (JPEG, PNG, WEBP, GIF, HEIC) peuvent etre jointes a une anomalie");
         }
         AttachmentStorageService.StoredFile stored = attachmentStorageService.store(file);
 
