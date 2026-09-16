@@ -4,7 +4,7 @@ Plateforme de gestion, d'étiquetage, d'inventaire et de traçabilité des immob
 
 > Processus cible : RECENSEMENT → VÉRIFICATION → CODIFICATION → ÉTIQUETAGE → AFFECTATION → INVENTAIRE → CONTRÔLE → MISE À JOUR DU RÉFÉRENTIEL
 
-Ce dépôt en est à la **Phase 1 — Initialisation du projet** (voir `docs/ROADMAP.md`). Le backend et le frontend démarrent, la base de données Flyway est câblée, mais aucun module métier (immobilisations, inventaire, étiquetage, ...) n'est encore développé — ce sont les phases suivantes.
+Ce dépôt en est à la **Phase 3 — Authentification** (voir `docs/ROADMAP.md`). Le backend et le frontend démarrent, la base de données Flyway est câblée (Phase 2), l'authentification JWT et le contrôle d'accès par rôle/permission sont en place côté backend (Phase 3), mais les modules métier (immobilisations, inventaire, étiquetage, ...) ne sont pas encore développés — ce sont les phases suivantes. Voir `docs/ROADMAP.md` section 13 pour les limites de vérification propres à l'environnement de développement utilisé jusqu'ici (Maven Central et Docker inaccessibles).
 
 ## 1. Présentation
 
@@ -111,7 +111,7 @@ Le frontend démarre sur http://localhost:5173 et proxifie `/api` vers `http://l
 
 ## 8. Comptes de démonstration
 
-Créés par le seed (Phase 2) mais **pas encore utilisables pour se connecter** : l'authentification (login, JWT) est construite en Phase 3. Mot de passe de démo pour tous les comptes ci-dessous : `VecoDemo#2026` (hash BCrypt réel déjà en base, prêt pour Phase 3).
+Créés par le seed (Phase 2), et l'authentification (`POST /api/auth/login`) construite en Phase 3 est censée les accepter — le hash BCrypt en base correspond bien au mot de passe ci-dessous — mais **non confirmé par une exécution réelle** dans cet environnement (ni Maven ni Docker disponibles pour compiler/lancer le backend, voir `docs/ROADMAP.md` section 13). Mot de passe de démo pour tous les comptes ci-dessous : `VecoDemo#2026`.
 
 | Email | Rôle | Site |
 |---|---|---|
@@ -125,7 +125,18 @@ Créés par le seed (Phase 2) mais **pas encore utilisables pour se connecter** 
 
 ## 9. API
 
-Documentation interactive : `/swagger-ui.html` (spec OpenAPI sur `/v3/api-docs`). En Phase 1, seul `GET /api/health` est exposé, pour vérifier que le backend répond réellement. Les endpoints métier (`/api/assets`, `/api/inventories`, `/api/reports`, ...) sont ajoutés phase par phase, voir `docs/ROADMAP.md`.
+Documentation interactive : `/swagger-ui.html` (spec OpenAPI sur `/v3/api-docs`).
+
+Endpoints disponibles à ce stade (Phases 1-3) :
+
+| Méthode | Chemin | Accès | Description |
+|---|---|---|---|
+| GET | `/api/health` | public | vérifie que le backend répond réellement (Phase 1) |
+| POST | `/api/auth/login` | public | authentifie un utilisateur (email + mot de passe), renvoie un JWT et le profil (email, nom, rôles) |
+| GET | `/api/auth/me` | authentifié | profil de l'utilisateur courant, déduit du JWT |
+| GET | `/api/admin/audit-logs` | authentifié + permission `ADMIN_ACCESS` | dernières entrées du journal d'audit (`audit_logs`), première fonctionnalité réelle protégée par permission (pas seulement par rôle) |
+
+Toute autre route est protégée par défaut (`anyRequest().authenticated()`) : un JWT valide (`Authorization: Bearer <token>`) est requis. Les endpoints métier (`/api/assets`, `/api/inventories`, `/api/reports`, ...) sont ajoutés phase par phase, voir `docs/ROADMAP.md`.
 
 ## 10. Structure du projet
 
@@ -150,6 +161,7 @@ veco-assets/
 | Backend ne compile pas / dépendances Maven introuvables | Registre Maven Central inaccessible depuis l'environnement de build | Vérifiez l'accès réseau sortant vers `repo.maven.apache.org` (proxy/pare-feu d'entreprise) |
 | Frontend : erreurs sur `@tailwindcss/vite` ou `tailwindcss-animate` | Tailwind v4 utilise `@plugin "..."` dans `src/index.css`, pas `tailwind.config.js` | Ne pas régénérer `tailwind.config.js` / `postcss.config.js` — la config v4 vit dans `vite.config.ts` et `src/index.css` |
 | `401`/`403` inattendus une fois l'auth branchée (Phase 3) | Rôle/permission manquant côté backend | Les permissions sont vérifiées côté backend (`@PreAuthorize`), pas seulement dans la sidebar frontend — vérifiez `security/` |
+| `mvn test` échoue à démarrer les tests d'intégration (`AuthenticationIntegrationTest`, `VecoAssetsApplicationTests`) | Testcontainers a besoin d'un démon Docker accessible | Vérifiez `docker info` ; ces tests démarrent un vrai conteneur PostgreSQL 16 (voir `AbstractIntegrationTest`), ils ne peuvent pas tourner sans Docker |
 
 ## 12. Notes pour la suite
 

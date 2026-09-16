@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,6 +45,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiError.of(403, "ACCESS_DENIED", "Permission insuffisante", request.getRequestURI()));
+    }
+
+    /**
+     * Covers login failures (bad credentials, disabled account) thrown by
+     * {@code AuthenticationManager.authenticate(...)} inside AuthService -
+     * distinct from the no-token-at-all case, which never reaches a
+     * controller and is handled by {@link dz.vecopharm.vecoassets.security.JsonAuthenticationEntryPoint}
+     * instead. Never reveals whether the email exists.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> handleAuthentication(AuthenticationException ex, HttpServletRequest request) {
+        String message = ex instanceof DisabledException ? "Compte desactive" : "Identifiants invalides";
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiError.of(401, "AUTHENTICATION_FAILED", message, request.getRequestURI()));
     }
 
     @ExceptionHandler(Exception.class)

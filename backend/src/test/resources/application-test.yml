@@ -1,15 +1,17 @@
+# spring.datasource.* is overridden per-test by AbstractIntegrationTest's
+# @DynamicPropertySource, pointed at the ephemeral Testcontainers Postgres
+# instance - nothing to configure here. Flyway stays enabled with its
+# default locations (classpath:db/migration only, no dev seed): every
+# test run replays the real schema migrations against a fresh container,
+# which doubles as a "migrations apply cleanly" check on every build.
 spring:
-  datasource:
-    url: jdbc:h2:mem:vecoassets;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
-    username: sa
-    password: sa
-    driver-class-name: org.h2.Driver
   jpa:
     hibernate:
-      ddl-auto: none
-  flyway:
-    enabled: false
+      ddl-auto: validate
 
 app:
   cors:
     allowed-origins: http://localhost:5173
+  jwt:
+    secret: test-only-secret-key-not-for-any-real-environment-32bytes-min
+    expiration-minutes: 60

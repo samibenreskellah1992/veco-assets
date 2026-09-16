@@ -128,10 +128,11 @@ Fichier → Validation (doublons, code/série existants, site/catégorie inexist
 
 ## 7. Sécurité
 
-- JWT pour l'authentification API (stateless), mots de passe hashés avec BCrypt.
-- RBAC avec rôles (`ADMIN`, `GESTIONNAIRE_PATRIMOINE`, `RESPONSABLE_SITE`, `RESPONSABLE_SERVICE`, `INVENTORISTE`, `CONSULTATION`) et permissions granulaires (`IMMOBILISATION_VIEW`, `IMMOBILISATION_CREATE`, …), contrôlées côté backend sur chaque endpoint (annotations `@PreAuthorize` + vérification service), jamais uniquement côté frontend.
+- JWT pour l'authentification API (stateless), mots de passe hashés avec BCrypt. Implémentation (Phase 3) : `POST /api/auth/login` authentifie via `AuthenticationManager`/`DaoAuthenticationProvider` (backés par `CustomUserDetailsService`, qui charge rôles et permissions réels depuis la base), puis émet un JWT dont les autorités (`ROLE_<code>` + codes de permission) sont **embarquées dans les claims** au moment de la connexion. `JwtAuthenticationFilter` reconstruit ensuite le contexte de sécurité à chaque requête à partir de la signature du token, sans nouvel accès base — cohérent avec le choix stateless.
+- RBAC avec rôles (`ADMIN`, `GESTIONNAIRE_PATRIMOINE`, `RESPONSABLE_SITE`, `RESPONSABLE_SERVICE`, `INVENTORISTE`, `CONSULTATION`) et permissions granulaires (`IMMOBILISATION_VIEW`, `IMMOBILISATION_CREATE`, …), contrôlées côté backend sur chaque endpoint (`@PreAuthorize` + `@EnableMethodSecurity`, jamais uniquement côté frontend). `GET /api/admin/audit-logs` (`ADMIN_ACCESS`) sert de premier exemple réel de ce contrôle, et est couvert par un test d'intégration positif (rôle avec la permission) et négatif (rôle sans la permission → 403).
+- Réponses 401/403 systématiquement au format `ApiError` (jamais la page par défaut de Spring Security) : `JsonAuthenticationEntryPoint` pour l'absence/invalidité de token, `JsonAccessDeniedHandler` en repli au niveau filtre, `GlobalExceptionHandler` pour les échecs de `authenticate()` (identifiants invalides, compte désactivé) et les refus `@PreAuthorize` levés pendant l'exécution d'un contrôleur.
 - CORS configuré explicitement (origines autorisées via configuration).
-- `GlobalExceptionHandler` pour des réponses d'erreur standardisées (`timestamp`, `status`, `error`, `message`, `path`), jamais de fuite de stacktrace ou de secret.
+- `GlobalExceptionHandler` pour des réponses d'erreur standardisées (`timestamp`, `status`, `error`, `message`, `path`), jamais de fuite de stacktrace ou de secret. Le message d'échec de connexion ne révèle jamais si c'est l'email ou le mot de passe qui est incorrect.
 - Secrets (URL base de données, identifiants, `JWT_SECRET`) exclusivement via variables d'environnement (`application.yml` avec `${VAR}`, `.env` non versionné, `.env.example` fourni).
 - Logs applicatifs (SLF4J/Logback) : jamais de mot de passe, token ou donnée sensible en clair.
 - Point d'extension prévu (non implémenté V1) : `AuthenticationProvider` LDAP/Active Directory.

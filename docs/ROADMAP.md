@@ -16,10 +16,12 @@ Développement par phases. Une phase n'est considérée terminée que si son cri
 - Seed de démonstration VECOPHARM (`db/seed/V900__seed_demo_data.sql`, profils `dev`/`demo` uniquement) : 5 sites avec hiérarchie de localisation complète, 7 catégories, 7 utilisateurs, 12 immobilisations réalistes.
 - Vérification : migrations rejouées à froid sur PostgreSQL 16 vierge (V1→V9→seed), intégrité FK et contraintes métier (code/série uniques, énumérations, affectation courante unique) testées avec des insertions invalides qui échouent bien. Compilation Maven du backend **non vérifiable** dans l'environnement de développement utilisé (voir section 13) — à confirmer en priorité dans un environnement avec accès normal à Maven Central avant la Phase 3.
 
-## Phase 3 — Authentification
-- Login, JWT (génération/validation), utilisateurs, rôles, permissions.
-- `GlobalExceptionHandler`, réponses d'erreur standardisées.
-- Vérification : restrictions d'accès testées par rôle/permission (backend, pas seulement frontend).
+## Phase 3 — Authentification *(terminée côté code, non compilée/exécutée dans cet environnement — voir section 13)*
+- `POST /api/auth/login` (JWT via `AuthenticationManager`/`CustomUserDetailsService`, autorités embarquées dans les claims), `GET /api/auth/me`, `JwtAuthenticationFilter` stateless, `SecurityConfig` avec `@EnableMethodSecurity`.
+- `GlobalExceptionHandler` étendu (`AuthenticationException` → 401, message générique ne révélant jamais si l'email ou le mot de passe est en cause), `JsonAuthenticationEntryPoint`/`JsonAccessDeniedHandler` pour des 401/403 au format `ApiError` au niveau filtre.
+- `GET /api/admin/audit-logs` (`@PreAuthorize("hasAuthority('ADMIN_ACCESS')")`) : première fonctionnalité réelle protégée par permission, sert de cas de test pour le critère de vérification ci-dessous (Administration > Audit, section 25/52 du prompt maître).
+- Tests d'intégration (`AuthenticationIntegrationTest`) contre un vrai PostgreSQL 16 (Testcontainers, voir Phase 10) : login valide/invalide, `/me` avec/sans token, endpoint admin accepté pour `ADMIN` (a `ADMIN_ACCESS`) et refusé pour `CONSULTATION` (ne l'a pas) — rôles et permissions viennent des données de référence réelles de la Phase 2, pas de valeurs codées en dur dans le test.
+- Vérification : restrictions d'accès testées par rôle/permission (backend, pas seulement frontend) — **test écrit et relu, non exécuté** dans cet environnement (ni Maven ni Docker/Testcontainers disponibles ici) ; à lancer en priorité sur un poste avec Docker avant la Phase 4.
 
 ## Phase 4 — Référentiel
 - Sites, bâtiments, étages, zones, localisations, catégories, utilisateurs — CRUD complet, administrable.
@@ -67,5 +69,10 @@ Développement par phases. Une phase n'est considérée terminée que si son cri
 ## 12. Hors périmètre V1 (préparé dans l'architecture, non développé)
 LDAP/Active Directory, application mobile Flutter, mode offline, intégration Power BI, intégration ERP comptable, intégration VECO-GED, notifications email/internes, signature électronique, NFC, RFID.
 
-## 13. Limite connue de l'environnement de développement utilisé pour les Phases 1-2
-L'environnement cloud dans lequel les Phases 1 et 2 ont été développées n'a pas accès à `repo.maven.apache.org` (bloqué par sa politique réseau). Résultat : le backend Java/Spring Boot n'a **jamais été compilé par Maven** dans cet environnement — le code a été relu attentivement et les migrations SQL ont été vérifiées en conditions réelles contre un PostgreSQL 16 local (rejeu à froid, contraintes testées avec des insertions invalides), mais `mvn compile` / `mvn test` restent à exécuter dans un environnement avec accès réseau normal (poste de développement, CI Vecopharm) avant de considérer les critères de fin de phase 1 et 2 entièrement satisfaits (voir section 11, point 2 "Compilation OK"). Ceci n'affecte pas le frontend (build vérifié avec succès) ni la validité des migrations SQL elles-mêmes.
+## 13. Limite connue de l'environnement de développement utilisé pour les Phases 1-3
+L'environnement cloud dans lequel les Phases 1 à 3 ont été développées n'a pas accès à `repo.maven.apache.org` (bloqué par sa politique réseau) et n'a pas de démon Docker accessible. Conséquences :
+- Le backend Java/Spring Boot n'a **jamais été compilé par Maven** dans cet environnement, phase après phase — le code a été relu attentivement à chaque phase (Phase 3 : signature JWT, wiring Spring Security, méthode par méthode) mais `mvn compile` reste à exécuter dans un environnement avec accès réseau normal (poste de développement, CI Vecopharm) avant de considérer une phase backend entièrement close (voir section 11, point 2 "Compilation OK").
+- Les migrations Flyway (Phase 2) ont pu être vérifiées en conditions réelles (rejeu à froid contre un PostgreSQL 16 local, contraintes testées avec des insertions invalides) car `psql` était disponible directement, indépendamment de Maven.
+- Les tests d'intégration (Phase 3 : `AuthenticationIntegrationTest`, basés sur Testcontainers pour utiliser un vrai PostgreSQL plutôt que H2 — voir Phase 10) n'ont en revanche **pas pu être exécutés du tout** ici : ils nécessitent à la fois Maven et un démon Docker, tous deux absents. Ils ont été écrits et relus avec la même rigueur, mais leur exécution réelle (`mvn test`) est la première chose à faire dans un environnement normal avant de passer à la Phase 4.
+
+Ceci n'affecte pas le frontend (build vérifié avec succès à chaque phase où il change) ni la validité des migrations SQL elles-mêmes (vérifiées indépendamment de Maven).
