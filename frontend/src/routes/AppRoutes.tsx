@@ -5,6 +5,9 @@ import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ReferentielPage } from '@/pages/ReferentielPage'
 import { UsersPage } from '@/pages/UsersPage'
+import { AssetsPage } from '@/pages/AssetsPage'
+import { AssetFormPage } from '@/pages/AssetFormPage'
+import { AssetDetailPage } from '@/pages/AssetDetailPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 
 export function AppRoutes() {
@@ -15,10 +18,10 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route
-            path="immobilisations"
-            element={<PlaceholderPage title="Immobilisations" phase="Phase 5 — Immobilisations" />}
-          />
+          <Route path="immobilisations" element={<AssetsPage />} />
+          <Route path="immobilisations/nouveau" element={<AssetFormPage />} />
+          <Route path="immobilisations/:id" element={<AssetDetailPage />} />
+          <Route path="immobilisations/:id/modifier" element={<AssetFormPage />} />
           <Route
             path="etiquetage"
             element={<PlaceholderPage title="Étiquetage" phase="Phase 6 — Étiquetage" />}

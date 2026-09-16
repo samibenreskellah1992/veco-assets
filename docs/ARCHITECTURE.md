@@ -70,6 +70,8 @@ Séparation stricte des responsabilités :
 
 Règle absolue : jamais de logique métier dans les controllers, jamais dans les composants React.
 
+Pagination (introduite en Phase 5 pour `GET /api/assets`, premier endpoint de liste à en avoir besoin) : `dto/PageResponse<T>` enveloppe `org.springframework.data.domain.Page` dans une forme JSON stable et documentable (`content`, `page`, `size`, `totalElements`, `totalPages`) plutôt que de sérialiser directement le type Spring Data — réutilisable telle quelle par toute future liste paginée (inventaires, mouvements, ...).
+
 ## 5. Modèle de données (V1)
 
 Tables principales (créées progressivement en Phase 2 via migrations Flyway) :
@@ -101,10 +103,12 @@ Principes transverses :
 ## 6. Flux métier clés
 
 ### Identifiant unique
-Génération côté backend exclusivement, format `VECO-IMM-000001`, jamais de réutilisation d'un code déjà attribué (séquence PostgreSQL ou table de compteur transactionnelle). Contrainte `UNIQUE` en base en plus du contrôle applicatif.
+Génération côté backend exclusivement (`service/AssetCodeGenerator`, Phase 5), format `VECO-IMM-000001` piloté par le paramètre administrable `settings.asset_code.format` (repli sur ce même format par défaut si le paramètre est absent ou mal formé — un paramètre invalide ne bloque jamais la création). Jamais de réutilisation d'un code déjà attribué : la séquence PostgreSQL `asset_code_seq` (créée en Phase 2) est incrémentée via `nextval()`, jamais un `count(*) + 1` qui se réutiliserait après une suppression. Contrainte `UNIQUE` en base en plus du contrôle applicatif.
 
 ### Traçabilité (qui/quoi/quand/où/pourquoi/ancienne-nouvelle valeur)
 Toute modification critique (création, modification, affectation, transfert, changement de statut, validation, génération d'étiquette) écrit une entrée dans `audit_logs` et, pour les immobilisations, une entrée dans `asset_movements` ou `asset_status_history` selon le cas. Aucune écriture destructive : une mise à jour de champ métier significatif s'accompagne d'un enregistrement d'historique.
+
+Depuis la Phase 5, `AssetService.update` applique concrètement ce principe : un changement d'état physique (`condition`) ou de statut opérationnel (`status`) écrit une ligne `asset_status_history` (ancienne/nouvelle valeur, auteur, date, commentaire optionnel) ; un changement d'affectation (utilisateur courant, direction/département/service) clôt la ligne `asset_assignments` courante (`assigned_until = now()`) et en ouvre une nouvelle plutôt que d'écraser les colonnes d'affectation courante de `assets` sans laisser de trace. Point d'attention vérifié en Phase 5 (voir `docs/ROADMAP.md` section 13) : l'ordre de flush par défaut d'Hibernate exécute les `INSERT` avant les `UPDATE` au sein d'une même transaction, ce qui violerait l'index unique partiel `uq_asset_assignments_current` si la clôture de l'ancienne affectation et l'ouverture de la nouvelle étaient flushées ensemble sans précaution — `AssetService` force donc un `saveAndFlush` sur la clôture avant d'insérer la nouvelle ligne.
 
 ### Workflow de transfert
 ```

@@ -4,7 +4,7 @@ Plateforme de gestion, d'étiquetage, d'inventaire et de traçabilité des immob
 
 > Processus cible : RECENSEMENT → VÉRIFICATION → CODIFICATION → ÉTIQUETAGE → AFFECTATION → INVENTAIRE → CONTRÔLE → MISE À JOUR DU RÉFÉRENTIEL
 
-Ce dépôt en est à la **Phase 4 — Référentiel** (voir `docs/ROADMAP.md`). Le backend et le frontend démarrent, la base de données Flyway est câblée (Phase 2), l'authentification JWT et le contrôle d'accès par rôle/permission sont en place (Phase 3, avec cette fois une vraie page de connexion côté frontend), et l'administration du référentiel (sites, bâtiments, étages, zones, localisations, catégories, utilisateurs) est utilisable de bout en bout (Phase 4). Les modules métier (immobilisations, étiquetage, inventaire, ...) ne sont pas encore développés — ce sont les phases suivantes. Voir `docs/ROADMAP.md` section 13 pour les limites de vérification propres à l'environnement de développement utilisé jusqu'ici (Maven Central et Docker inaccessibles ; le frontend, lui, a pu être compilé et lint-vérifié pour de vrai).
+Ce dépôt en est à la **Phase 5 — Immobilisations** (voir `docs/ROADMAP.md`). Le backend et le frontend démarrent, la base de données Flyway est câblée (Phase 2), l'authentification JWT et le contrôle d'accès par rôle/permission sont en place (Phase 3, avec une vraie page de connexion côté frontend), l'administration du référentiel (sites, bâtiments, étages, zones, localisations, catégories, utilisateurs) est utilisable de bout en bout (Phase 4), et le registre des immobilisations (création, modification, archivage, recherche/filtres/tri/pagination, fiche détaillée avec historique d'état/statut et d'affectation) l'est également (Phase 5). Les modules restants (étiquetage, inventaire, mouvements, reporting, ...) ne sont pas encore développés — ce sont les phases suivantes. Voir `docs/ROADMAP.md` section 13 pour les limites de vérification propres à l'environnement de développement utilisé jusqu'ici (Maven Central et Docker inaccessibles ; les migrations et la logique métier ont pu être vérifiées en SQL réel, et le frontend a pu être compilé et lint-vérifié pour de vrai).
 
 ## 1. Présentation
 
@@ -37,7 +37,7 @@ frontend/src/
   routes/      lib/
 ```
 
-`components/ui/` porte les primitives shadcn/ui (bouton, champ, select, dialogue, onglets, ...) ajoutées à la main (voir `docs/ROADMAP.md` section 13). `features/referentiel/` porte les écrans Sites/Bâtiments/Étages/Zones/Localisations/Catégories (Phase 4), `hooks/use-auth.tsx` porte la session (JWT, restauration au démarrage, déconnexion).
+`components/ui/` porte les primitives shadcn/ui (bouton, champ, select, dialogue, onglets, ...) ajoutées à la main (voir `docs/ROADMAP.md` section 13). `features/referentiel/` porte les écrans Sites/Bâtiments/Étages/Zones/Localisations/Catégories (Phase 4), `hooks/use-auth.tsx` porte la session (JWT, restauration au démarrage, déconnexion). `pages/AssetsPage.tsx` (liste/filtres/pagination), `pages/AssetFormPage.tsx` (création/modification, localisation en cascade) et `pages/AssetDetailPage.tsx` (fiche à onglets) portent le module Immobilisations (Phase 5).
 
 ## 3. Prérequis
 
@@ -110,6 +110,7 @@ Le frontend démarre sur http://localhost:5173 et proxifie `/api` vers `http://l
 - Migrations de schéma : Flyway, `backend/src/main/resources/db/migration/V2__*.sql` à `V9__*.sql` (Phase 2) — hiérarchie de localisation (sites/bâtiments/étages/zones/localisations), RBAC (rôles/permissions/utilisateurs), catégories et formats d'étiquette, immobilisations, historique (affectations/mouvements/changements d'état), inventaire (campagnes/scans/anomalies), pièces jointes, audit trail et paramètres. `V1__init.sql` (Phase 1) ne fait qu'activer l'extension `pgcrypto`. `V10__referentiel_permissions.sql` et `V11__audit_action_suppression.sql` (Phase 4) ajoutent les permissions `REFERENTIEL_MANAGE`/`USER_MANAGE` et la valeur d'audit `SUPPRESSION`.
 - Seed de démonstration VECOPHARM : `backend/src/main/resources/db/seed/V900__seed_demo_data.sql` — sites VSA/Alger/Oran/Béjaïa/Laghouat avec une hiérarchie de localisation complète, les 7 catégories du prompt maître, 7 utilisateurs de démo, 12 immobilisations réalistes (variées en catégorie/site/état/statut). Chargé **uniquement** en profil `dev` ou `demo` (`spring.flyway.locations` ajoute `classpath:db/seed`), jamais en `prod`. Numéroté à partir de `V900` pour ne jamais entrer en collision avec les futures migrations de schéma.
 - Ces migrations ont été rejouées à froid sur une base PostgreSQL 16 vierge (V1→V11→seed) : contraintes uniques (code immobilisation, numéro de série, affectation courante unique par bien, code de bâtiment/étage/zone/localisation unique par parent), contraintes `CHECK` (énumérations état/statut, actions d'audit), intégrité des clés étrangères (y compris le blocage `ON DELETE RESTRICT` d'une suppression de site/catégorie encore utilisée) et stockage JSONB (`audit_logs`) tous vérifiés en conditions réelles.
+- La Phase 5 (Immobilisations) n'ajoute **aucune nouvelle migration** : la table `assets`, la séquence `asset_code_seq` et les paramètres `asset_code.*` existent depuis la Phase 2 et le seed. La logique métier ajoutée (génération de code, historique d'état/statut, historique d'affectation) a néanmoins été simulée directement en SQL contre cette même base rejouée à froid — voir `docs/ROADMAP.md` section 13 pour le détail, y compris un risque d'ordonnancement Hibernate reproduit et corrigé à cette occasion.
 
 ## 8. Comptes de démonstration
 
@@ -129,7 +130,7 @@ Créés par le seed (Phase 2), et l'authentification (`POST /api/auth/login`, Ph
 
 Documentation interactive : `/swagger-ui.html` (spec OpenAPI sur `/v3/api-docs`).
 
-Endpoints disponibles à ce stade (Phases 1-4) :
+Endpoints disponibles à ce stade (Phases 1-5) :
 
 | Méthode | Chemin | Accès | Description |
 |---|---|---|---|
@@ -145,8 +146,15 @@ Endpoints disponibles à ce stade (Phases 1-4) :
 | GET (`?parentId=`) / POST / PUT / activate / deactivate / DELETE | `/api/asset-categories` | idem | CRUD catégories/sous-catégories d'immobilisation |
 | GET | `/api/roles` | authentifié | liste des 6 rôles V1 (lecture seule, pas de CRUD rôle en V1) |
 | GET / POST / PUT / `{id}/activate` / `{id}/deactivate` / `{id}/reset-password` | `/api/users` | permission `USER_MANAGE` (lecture et écriture) | gestion des comptes utilisateurs — jamais de suppression physique, voir `docs/ARCHITECTURE.md` section 5 |
+| GET (`?page=&size=&sort=&siteId=&categoryId=&condition=&status=&labeled=&search=&includeDeleted=`) | `/api/assets` | permission `IMMOBILISATION_VIEW` | liste paginée/filtrée/triée des immobilisations (Phase 5), enveloppe `PageResponse` |
+| GET | `/api/assets/{id}` | `IMMOBILISATION_VIEW` | fiche d'une immobilisation |
+| GET | `/api/assets/{id}/status-history` | `IMMOBILISATION_VIEW` | historique des changements d'état/statut |
+| GET | `/api/assets/{id}/assignments` | `IMMOBILISATION_VIEW` | historique des affectations |
+| POST | `/api/assets` | `IMMOBILISATION_CREATE` | création (code généré automatiquement, jamais saisi) |
+| PUT | `/api/assets/{id}` | `IMMOBILISATION_EDIT` | modification (écrit l'historique d'état/statut/affectation si ces champs changent) |
+| POST | `/api/assets/{id}/archive` | `IMMOBILISATION_ARCHIVE` | archivage (suppression logique — jamais physique, voir `docs/ARCHITECTURE.md` section 5) |
 
-Toute autre route est protégée par défaut (`anyRequest().authenticated()`) : un JWT valide (`Authorization: Bearer <token>`) est requis. Les endpoints métier (`/api/assets`, `/api/inventories`, `/api/reports`, ...) sont ajoutés phase par phase, voir `docs/ROADMAP.md`.
+Toute autre route est protégée par défaut (`anyRequest().authenticated()`) : un JWT valide (`Authorization: Bearer <token>`) est requis. Les endpoints métier restants (`/api/labels`, `/api/inventories`, `/api/reports`, ...) sont ajoutés phase par phase, voir `docs/ROADMAP.md`.
 
 ## 10. Structure du projet
 
@@ -179,5 +187,6 @@ veco-assets/
 
 - Ne pas contourner l'ordre des phases (`docs/ROADMAP.md`) : chaque phase doit compiler, migrer et démarrer réellement avant de passer à la suivante.
 - Toute règle métier (unicité de code/série, immobilisation réformée non ré-affectable, campagne clôturée sans nouveaux scans, etc.) se contrôle côté backend, jamais uniquement côté frontend.
-- Aucune suppression physique d'immobilisation : suppression logique (`deleted = true`) uniquement, historique toujours conservé. Les données de référentiel tolèrent une suppression physique, mais seulement si elles ne sont encore référencées nulle part (voir `docs/ARCHITECTURE.md` section 5) ; les comptes utilisateurs ne sont eux jamais supprimés physiquement (désactivation uniquement).
-- Avant la Phase 5 : lancer `mvn test` (avec Docker) dans un environnement normal pour confirmer les Phases 2 à 4 côté backend (voir `docs/ROADMAP.md` section 13).
+- Aucune suppression physique d'immobilisation : suppression logique (`deleted = true`, endpoint `/api/assets/{id}/archive`) uniquement, historique toujours conservé. Les données de référentiel tolèrent une suppression physique, mais seulement si elles ne sont encore référencées nulle part (voir `docs/ARCHITECTURE.md` section 5) ; les comptes utilisateurs ne sont eux jamais supprimés physiquement (désactivation uniquement).
+- Tout changement d'état physique, de statut opérationnel ou d'affectation d'une immobilisation écrit une ligne d'historique (`asset_status_history` / `asset_assignments`) — jamais un écrasement silencieux, voir `docs/ARCHITECTURE.md` section 6.
+- Avant la Phase 6 : lancer `mvn test` (avec Docker) dans un environnement normal pour confirmer les Phases 2 à 5 côté backend (voir `docs/ROADMAP.md` section 13).
