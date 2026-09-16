@@ -1,0 +1,60 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: veco-assets-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vecoassets}
+      POSTGRES_USER: ${POSTGRES_USER:-vecoassets}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vecoassets}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - veco-assets-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vecoassets}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - veco-assets
+
+  backend:
+    build:
+      context: ./backend
+    container_name: veco-assets-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-vecoassets}
+      DATABASE_USERNAME: ${POSTGRES_USER:-vecoassets}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-vecoassets}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      SERVER_PORT: 8080
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    networks:
+      - veco-assets
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: veco-assets-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    networks:
+      - veco-assets
+
+networks:
+  veco-assets:
+    driver: bridge
+
+volumes:
+  veco-assets-postgres-data:

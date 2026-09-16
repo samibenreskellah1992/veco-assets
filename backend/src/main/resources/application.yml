@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: veco-assets
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/vecoassets}
+    username: ${DATABASE_USERNAME:vecoassets}
+    password: ${DATABASE_PASSWORD:vecoassets}
+
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway migrations, never by Hibernate auto-DDL.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  jwt:
+    secret: ${JWT_SECRET:change-me-in-env-never-commit-a-real-secret}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:480}
+  asset-code:
+    prefix: ${ASSET_CODE_PREFIX:VECO-IMM}
+    start-number: ${ASSET_CODE_START:1}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    dz.vecopharm.vecoassets: INFO
+    org.flywaydb: INFO
