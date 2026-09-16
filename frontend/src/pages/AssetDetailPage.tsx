@@ -7,8 +7,10 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/use-auth'
 import { assetsApi } from '@/services/asset-service'
 import { assetInventoryHistoryApi } from '@/services/inventory-service'
+import { movementsApi } from '@/services/movement-service'
 import { extractApiErrorMessage } from '@/lib/api-error'
 import { ASSET_CONDITION_LABEL, ASSET_STATUS_LABEL, type AssetCondition, type AssetStatus } from '@/types/asset'
+import { MOVEMENT_STATUS_LABEL, MOVEMENT_TYPE_LABEL, type MovementStatus } from '@/types/movement'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +27,12 @@ function conditionBadgeVariant(condition: AssetCondition) {
 function statusBadgeVariant(status: AssetStatus) {
   if (status === 'EN_SERVICE') return 'success' as const
   if (status === 'REFORME' || status === 'SORTI') return 'destructive' as const
+  return 'secondary' as const
+}
+
+function movementStatusBadgeVariant(status: MovementStatus) {
+  if (status === 'EXECUTE') return 'success' as const
+  if (status === 'REJETE') return 'destructive' as const
   return 'secondary' as const
 }
 
@@ -70,6 +78,10 @@ export function AssetDetailPage() {
   const { data: inventoryScans } = useQuery({
     queryKey: ['assets', id, 'inventory-scans'],
     queryFn: () => assetInventoryHistoryApi.forAsset(id!),
+  })
+  const { data: movements } = useQuery({
+    queryKey: ['movements', { assetId: id }],
+    queryFn: () => movementsApi.list({ assetId: id! }),
   })
 
   const archiveMutation = useMutation({
@@ -309,7 +321,46 @@ export function AssetDetailPage() {
           </div>
         </TabsContent>
         <TabsContent value="mouvements">
-          <PlaceholderTab phase="Phase 8 — Mouvements" />
+          <div className="rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Demandé par</TableHead>
+                  <TableHead>Date de demande</TableHead>
+                  <TableHead>Statut</TableHead>
+                  <TableHead>Exécuté le</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {movements?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      Aucun mouvement pour cette immobilisation.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {movements?.map((movement) => (
+                  <TableRow key={movement.id}>
+                    <TableCell className="font-medium">{MOVEMENT_TYPE_LABEL[movement.movementType]}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{movement.requestedByName ?? '—'}</TableCell>
+                    <TableCell>{formatDateTime(movement.requestedAt)}</TableCell>
+                    <TableCell>
+                      <Badge variant={movementStatusBadgeVariant(movement.status)}>{MOVEMENT_STATUS_LABEL[movement.status]}</Badge>
+                    </TableCell>
+                    <TableCell>{formatDateTime(movement.executedAt)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Créer, valider et exécuter un mouvement se fait depuis le module{' '}
+            <Link to="/mouvements" className="underline">
+              Mouvements
+            </Link>
+            .
+          </p>
         </TabsContent>
         <TabsContent value="documents">
           <PlaceholderTab phase="Phase 6 — Étiquetage / pièces jointes" />

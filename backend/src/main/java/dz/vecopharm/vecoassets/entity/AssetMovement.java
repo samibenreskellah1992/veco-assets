@@ -59,6 +59,27 @@ public class AssetMovement extends BaseEntity {
     @JoinColumn(name = "to_user_id")
     private User toUser;
 
+    // --- Direction/departement/service (Phase 8, V13) -----------------------
+    // Champs texte libres, symetriques a from/to site/location/user ci-dessus
+    // - Asset.direction/department/service n'ont pas de table de reference.
+    @Column(name = "from_direction", length = 150)
+    private String fromDirection;
+
+    @Column(name = "to_direction", length = 150)
+    private String toDirection;
+
+    @Column(name = "from_department", length = 150)
+    private String fromDepartment;
+
+    @Column(name = "to_department", length = 150)
+    private String toDepartment;
+
+    @Column(name = "from_service", length = 150)
+    private String fromService;
+
+    @Column(name = "to_service", length = 150)
+    private String toService;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requested_by")
     private User requestedBy;

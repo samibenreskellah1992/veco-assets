@@ -12,6 +12,7 @@ import { EtiquetagePage } from '@/pages/EtiquetagePage'
 import { InventoryCampaignsPage } from '@/pages/InventoryCampaignsPage'
 import { InventoryCampaignDetailPage } from '@/pages/InventoryCampaignDetailPage'
 import { AnomaliesPage } from '@/pages/AnomaliesPage'
+import { MouvementsPage } from '@/pages/MouvementsPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 
 export function AppRoutes() {
@@ -29,10 +30,7 @@ export function AppRoutes() {
           <Route path="etiquetage" element={<EtiquetagePage />} />
           <Route path="inventaires" element={<InventoryCampaignsPage />} />
           <Route path="inventaires/:id" element={<InventoryCampaignDetailPage />} />
-          <Route
-            path="mouvements"
-            element={<PlaceholderPage title="Mouvements" phase="Phase 8 — Mouvements" />}
-          />
+          <Route path="mouvements" element={<MouvementsPage />} />
           <Route path="anomalies" element={<AnomaliesPage />} />
           <Route path="sites" element={<ReferentielPage />} />
           <Route path="utilisateurs" element={<UsersPage />} />

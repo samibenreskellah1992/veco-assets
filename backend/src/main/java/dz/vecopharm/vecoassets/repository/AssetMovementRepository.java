@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface AssetMovementRepository extends JpaRepository<AssetMovement, UUID> {
     List<AssetMovement> findByAssetIdOrderByRequestedAtDesc(UUID assetId);
+    List<AssetMovement> findAllByOrderByRequestedAtDesc();
 }
