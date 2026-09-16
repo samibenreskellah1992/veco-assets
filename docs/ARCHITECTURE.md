@@ -35,7 +35,7 @@ Frontend et backend communiquent exclusivement via une API REST JSON documentée
 React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Router, TanStack Query (état serveur/cache), React Hook Form + Zod (formulaires/validation), Lucide Icons.
 
 ### Backend
-Java 21, Spring Boot 3.x (Web, Security, Data JPA), Hibernate, Bean Validation, driver PostgreSQL, Flyway (migrations), springdoc-openapi (Swagger).
+Java 21, Spring Boot 3.x (Web, Security, Data JPA), Hibernate, Bean Validation, driver PostgreSQL, Flyway (migrations), springdoc-openapi (Swagger). Génération de documents (Phase 6) : ZXing (QR code / code-barres Code128) et Apache PDFBox (construction du PDF d'étiquettes), toutes deux en licence Apache 2.0.
 
 ### Base de données
 PostgreSQL 16+.
@@ -79,7 +79,7 @@ Tables principales (créées progressivement en Phase 2 via migrations Flyway) :
 `users`, `roles`, `permissions`, `user_roles`, `role_permissions` — identité et RBAC.
 `sites`, `buildings`, `floors`, `zones`, `locations` — hiérarchie de localisation (Site → Bâtiment → Étage → Zone → Localisation), entièrement administrable, jamais codée en dur côté frontend.
 `asset_categories` — catégories/sous-catégories d'immobilisations (auto-référence pour les sous-catégories).
-`asset_label_formats` — formats d'étiquette administrables (largeur/hauteur, contenu affiché) ; ajoutée en Phase 2 pour honorer l'exigence « dimensions jamais codées en dur » (prompt maître section 13), au lieu d'un simple couple clé/valeur générique.
+`asset_label_formats` — formats d'étiquette administrables (largeur/hauteur, contenu affiché) ; ajoutée en Phase 2 pour honorer l'exigence « dimensions jamais codées en dur » (prompt maître section 13), au lieu d'un simple couple clé/valeur générique. Utilisée pour de vrai depuis la Phase 6 : ce sont ces dimensions exactes (converties mm → points PDF) qui pilotent la taille de chaque page du PDF généré, jamais une taille de page fixe.
 `assets` — immobilisation (identification, désignation, localisation courante, affectation courante, acquisition, état, statut).
 `asset_assignments` — historique des affectations (utilisateur/service/département responsable dans le temps).
 `asset_movements` — mouvements (affectation, transfert, changement de localisation, maintenance, sortie, réforme), avec ancien/nouveau site, ancienne/nouvelle localisation, ancien/nouvel utilisateur, demandeur, validateur, motif.
@@ -87,7 +87,7 @@ Tables principales (créées progressivement en Phase 2 via migrations Flyway) :
 `inventory_campaigns` — campagnes d'inventaire (site, zone, responsable, dates, statut).
 `inventory_scans` — scans réalisés pendant une campagne (immobilisation, utilisateur scanneur, date/heure, résultat).
 `inventory_anomalies` — anomalies détectées (type, description, immobilisation, campagne, statut).
-`asset_labels` — étiquettes générées (format, date de génération).
+`asset_labels` — étiquettes générées (format, date de génération). Alimentée depuis la Phase 6 : une ligne par immobilisation à chaque génération de PDF (`AssetLabelService.generate`), jamais modifiée après coup (voir principes transverses ci-dessous) — c'est l'historique qui permet de répondre à « quand et avec quel format cette immobilisation a-t-elle été étiquetée ».
 `attachments` — métadonnées des fichiers joints (photos, factures, PV) ; les fichiers eux-mêmes sont stockés hors PostgreSQL (système de fichiers/objet), la base ne stocke que les métadonnées (chemin, type, taille, propriétaire).
 `audit_logs` — piste d'audit générique (utilisateur, date/heure, action, module, objet, ID objet, ancienne valeur, nouvelle valeur, IP).
 `settings` — paramètres applicatifs (préfixe de code, format d'étiquette, etc.).
@@ -109,6 +109,16 @@ Génération côté backend exclusivement (`service/AssetCodeGenerator`, Phase 5
 Toute modification critique (création, modification, affectation, transfert, changement de statut, validation, génération d'étiquette) écrit une entrée dans `audit_logs` et, pour les immobilisations, une entrée dans `asset_movements` ou `asset_status_history` selon le cas. Aucune écriture destructive : une mise à jour de champ métier significatif s'accompagne d'un enregistrement d'historique.
 
 Depuis la Phase 5, `AssetService.update` applique concrètement ce principe : un changement d'état physique (`condition`) ou de statut opérationnel (`status`) écrit une ligne `asset_status_history` (ancienne/nouvelle valeur, auteur, date, commentaire optionnel) ; un changement d'affectation (utilisateur courant, direction/département/service) clôt la ligne `asset_assignments` courante (`assigned_until = now()`) et en ouvre une nouvelle plutôt que d'écraser les colonnes d'affectation courante de `assets` sans laisser de trace. Point d'attention vérifié en Phase 5 (voir `docs/ROADMAP.md` section 13) : l'ordre de flush par défaut d'Hibernate exécute les `INSERT` avant les `UPDATE` au sein d'une même transaction, ce qui violerait l'index unique partiel `uq_asset_assignments_current` si la clôture de l'ancienne affectation et l'ouverture de la nouvelle étaient flushées ensemble sans précaution — `AssetService` force donc un `saveAndFlush` sur la clôture avant d'insérer la nouvelle ligne.
+
+### Étiquetage (Phase 6)
+```
+Sélection d'immobilisations + format d'étiquette → LabelPdfBuilder (une page par
+immobilisation, aux dimensions réelles du format, mm → points) → pour chaque
+immobilisation : ligne asset_labels + asset.labeled = true + audit
+GENERATION_ETIQUETTE → PDF renvoyé (aperçu et téléchargement réutilisent le même
+PDF déjà généré, sans nouvel appel ni nouvelle trace)
+```
+Le QR code (et, selon le format, le code-barres Code128) n'encode jamais que le code d'immobilisation (`VECO-IMM-000001`), jamais une URL ni une donnée personnelle (prompt maître section 13). Les dimensions de la page PDF ne sont jamais codées en dur : elles viennent des colonnes `width_mm`/`height_mm` du format sélectionné (`asset_label_formats`, administrable en Référentiel), converties en points PDF à la génération (`LabelPdfBuilder`). `LabelImageGenerator` produit les images QR/code-barres via ZXing ; `LabelPdfBuilder` construit le PDF via Apache PDFBox — voir `docs/ROADMAP.md` section 13 pour le niveau de vérification de ces deux dépendances (Maven Central bloqué dans l'environnement de développement, revue manuelle de l'API en lieu de compilation réelle). Génération soumise à la permission `ETIQUETTE_GENERATE` ; administration des formats à `ETIQUETTE_MANAGE` (migration `V12`).
 
 ### Workflow de transfert
 ```
@@ -135,6 +145,7 @@ Fichier → Validation (doublons, code/série existants, site/catégorie inexist
 - JWT pour l'authentification API (stateless), mots de passe hashés avec BCrypt. Implémentation (Phase 3) : `POST /api/auth/login` authentifie via `AuthenticationManager`/`DaoAuthenticationProvider` (backés par `CustomUserDetailsService`, qui charge rôles et permissions réels depuis la base), puis émet un JWT dont les autorités (`ROLE_<code>` + codes de permission) sont **embarquées dans les claims** au moment de la connexion. `JwtAuthenticationFilter` reconstruit ensuite le contexte de sécurité à chaque requête à partir de la signature du token, sans nouvel accès base — cohérent avec le choix stateless.
 - RBAC avec rôles (`ADMIN`, `GESTIONNAIRE_PATRIMOINE`, `RESPONSABLE_SITE`, `RESPONSABLE_SERVICE`, `INVENTORISTE`, `CONSULTATION`) et permissions granulaires (`IMMOBILISATION_VIEW`, `IMMOBILISATION_CREATE`, …), contrôlées côté backend sur chaque endpoint (`@PreAuthorize` + `@EnableMethodSecurity`, jamais uniquement côté frontend). `GET /api/admin/audit-logs` (`ADMIN_ACCESS`) sert de premier exemple réel de ce contrôle, et est couvert par un test d'intégration positif (rôle avec la permission) et négatif (rôle sans la permission → 403).
 - Phase 4 (`V10__referentiel_permissions.sql`) ajoute deux permissions : `REFERENTIEL_MANAGE` (écriture sur sites/bâtiments/étages/zones/localisations/catégories — `ADMIN` et `GESTIONNAIRE_PATRIMOINE`) et `USER_MANAGE` (gestion des comptes utilisateurs — `ADMIN` uniquement). La **lecture** de ces ressources référentiel n'est volontairement pas verrouillée par une permission dédiée : elle est nécessaire à tout utilisateur authentifié pour les listes déroulantes des futurs modules métier (Phase 5+) ; seule l'écriture est contrôlée. `/api/users` fait exception et reste protégé en lecture comme en écriture (`USER_MANAGE`), la liste des comptes étant plus sensible qu'une donnée géographique.
+- Phase 6 (`V12__etiquetage_permissions.sql`) ajoute `ETIQUETTE_GENERATE` (générer des étiquettes pour des immobilisations existantes — `ADMIN` et `GESTIONNAIRE_PATRIMOINE`, même périmètre que la création/modification d'immobilisations) et `ETIQUETTE_MANAGE` (définir les formats d'étiquette — `ADMIN` uniquement, même logique que `USER_MANAGE`). Comme pour le référentiel, la lecture de `/api/asset-label-formats` reste ouverte à tout utilisateur authentifié (nécessaire au sélecteur de format du module `/etiquetage`) ; seules l'écriture des formats et la génération elle-même sont contrôlées.
 - `audit/AuditRecorder` (Phase 4) centralise l'écriture dans `audit_logs` — résolution de l'utilisateur courant et de l'adresse IP depuis le contexte de la requête HTTP, sérialisation JSON de l'ancienne/nouvelle valeur — pour que les services du référentiel (et, dans les phases suivantes, ceux des immobilisations/inventaire/mouvements) n'aient pas chacun à reconstruire un `AuditLog` à la main comme le faisait `AuthService` en Phase 3.
 - Réponses 401/403 systématiquement au format `ApiError` (jamais la page par défaut de Spring Security) : `JsonAuthenticationEntryPoint` pour l'absence/invalidité de token, `JsonAccessDeniedHandler` en repli au niveau filtre, `GlobalExceptionHandler` pour les échecs de `authenticate()` (identifiants invalides, compte désactivé) et les refus `@PreAuthorize` levés pendant l'exécution d'un contrôleur.
 - CORS configuré explicitement (origines autorisées via configuration).

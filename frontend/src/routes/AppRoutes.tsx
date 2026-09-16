@@ -8,6 +8,7 @@ import { UsersPage } from '@/pages/UsersPage'
 import { AssetsPage } from '@/pages/AssetsPage'
 import { AssetFormPage } from '@/pages/AssetFormPage'
 import { AssetDetailPage } from '@/pages/AssetDetailPage'
+import { EtiquetagePage } from '@/pages/EtiquetagePage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 
 export function AppRoutes() {
@@ -22,10 +23,7 @@ export function AppRoutes() {
           <Route path="immobilisations/nouveau" element={<AssetFormPage />} />
           <Route path="immobilisations/:id" element={<AssetDetailPage />} />
           <Route path="immobilisations/:id/modifier" element={<AssetFormPage />} />
-          <Route
-            path="etiquetage"
-            element={<PlaceholderPage title="Étiquetage" phase="Phase 6 — Étiquetage" />}
-          />
+          <Route path="etiquetage" element={<EtiquetagePage />} />
           <Route
             path="inventaires"
             element={<PlaceholderPage title="Inventaires" phase="Phase 7 — Inventaire" />}

@@ -22,6 +22,8 @@
         <mapstruct.version>1.6.0</mapstruct.version>
         <jjwt.version>0.12.6</jjwt.version>
         <springdoc.version>2.6.0</springdoc.version>
+        <zxing.version>3.5.3</zxing.version>
+        <pdfbox.version>3.0.3</pdfbox.version>
     </properties>
 
     <dependencies>
@@ -110,6 +112,36 @@
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
             <version>${mapstruct.version}</version>
+        </dependency>
+
+        <!--
+          ZXing: generation reelle de QR codes et de codes-barres Code128
+          (Phase 6 - Etiquetage). "javase" apporte MatrixToImageWriter pour
+          convertir la BitMatrix produite par "core" en BufferedImage,
+          ensuite embarque dans le PDF via PDFBox ci-dessous.
+        -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+
+        <!--
+          Apache PDFBox: generation reelle du PDF d'etiquettes (Phase 6),
+          une page par etiquette aux dimensions reelles du format
+          (largeur/hauteur administrables, jamais codees en dur - prompt
+          maitre section 13). Choisie plutot qu'iText pour rester en
+          licence Apache 2.0, coherente avec le reste des dependances.
+        -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
 
         <!-- Tests -->

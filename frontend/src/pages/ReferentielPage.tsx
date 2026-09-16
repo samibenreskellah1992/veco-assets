@@ -5,6 +5,7 @@ import { FloorsPanel } from '@/features/referentiel/FloorsPanel'
 import { ZonesPanel } from '@/features/referentiel/ZonesPanel'
 import { LocationsPanel } from '@/features/referentiel/LocationsPanel'
 import { CategoriesPanel } from '@/features/referentiel/CategoriesPanel'
+import { LabelFormatsPanel } from '@/features/referentiel/LabelFormatsPanel'
 
 /**
  * Référentiel (prompt maitre Phase 4) : hiérarchie de localisation complète
@@ -18,7 +19,8 @@ export function ReferentielPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Sites & Localisations</h1>
         <p className="text-sm text-muted-foreground">
-          Référentiel administrable : sites, bâtiments, étages, zones, localisations et catégories d'immobilisation.
+          Référentiel administrable : sites, bâtiments, étages, zones, localisations, catégories d'immobilisation et
+          formats d'étiquette.
         </p>
       </div>
 
@@ -30,6 +32,7 @@ export function ReferentielPage() {
           <TabsTrigger value="zones">Zones</TabsTrigger>
           <TabsTrigger value="locations">Localisations</TabsTrigger>
           <TabsTrigger value="categories">Catégories</TabsTrigger>
+          <TabsTrigger value="label-formats">Formats d'étiquette</TabsTrigger>
         </TabsList>
         <TabsContent value="sites">
           <SitesPanel />
@@ -48,6 +51,9 @@ export function ReferentielPage() {
         </TabsContent>
         <TabsContent value="categories">
           <CategoriesPanel />
+        </TabsContent>
+        <TabsContent value="label-formats">
+          <LabelFormatsPanel />
         </TabsContent>
       </Tabs>
     </div>
