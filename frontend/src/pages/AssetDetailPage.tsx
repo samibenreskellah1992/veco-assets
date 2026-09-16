@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 
 import { useAuth } from '@/hooks/use-auth'
 import { assetsApi } from '@/services/asset-service'
+import { assetInventoryHistoryApi } from '@/services/inventory-service'
 import { extractApiErrorMessage } from '@/lib/api-error'
 import { ASSET_CONDITION_LABEL, ASSET_STATUS_LABEL, type AssetCondition, type AssetStatus } from '@/types/asset'
 import { Button } from '@/components/ui/button'
@@ -66,6 +67,10 @@ export function AssetDetailPage() {
   const { data: asset, isLoading } = useQuery({ queryKey: ['assets', id], queryFn: () => assetsApi.get(id!) })
   const { data: assignments } = useQuery({ queryKey: ['assets', id, 'assignments'], queryFn: () => assetsApi.assignments(id!) })
   const { data: statusHistory } = useQuery({ queryKey: ['assets', id, 'status-history'], queryFn: () => assetsApi.statusHistory(id!) })
+  const { data: inventoryScans } = useQuery({
+    queryKey: ['assets', id, 'inventory-scans'],
+    queryFn: () => assetInventoryHistoryApi.forAsset(id!),
+  })
 
   const archiveMutation = useMutation({
     mutationFn: () => assetsApi.archive(id!),
@@ -267,7 +272,41 @@ export function AssetDetailPage() {
         </TabsContent>
 
         <TabsContent value="inventaire">
-          <PlaceholderTab phase="Phase 7 — Inventaire" />
+          <div className="rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Campagne</TableHead>
+                  <TableHead>Scanné par</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Résultat</TableHead>
+                  <TableHead>Commentaire</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {inventoryScans?.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      Aucun scan d'inventaire pour cette immobilisation.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {inventoryScans?.map((scan) => (
+                  <TableRow key={scan.id}>
+                    <TableCell className="font-medium">{scan.campaignName ?? '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{scan.scannedByName ?? '—'}</TableCell>
+                    <TableCell>{formatDateTime(scan.scannedAt)}</TableCell>
+                    <TableCell>
+                      <Badge variant={scan.result === 'PRESENT' ? 'success' : 'destructive'}>
+                        {scan.result === 'PRESENT' ? 'Présent' : 'Anomalie'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{scan.comment ?? '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
         <TabsContent value="mouvements">
           <PlaceholderTab phase="Phase 8 — Mouvements" />

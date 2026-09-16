@@ -8,6 +8,9 @@ backend/target/
 *.jar
 !.mvn/wrapper/maven-wrapper.jar
 
+# --- Pieces jointes stockees localement en developpement (Phase 7) --------
+backend/data/
+
 # --- Frontend (Node / Vite) ------------------------------------------------
 frontend/node_modules/
 frontend/dist/

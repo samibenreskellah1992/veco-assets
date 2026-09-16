@@ -7,5 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface InventoryAnomalyRepository extends JpaRepository<InventoryAnomaly, UUID> {
-    List<InventoryAnomaly> findByCampaignId(UUID campaignId);
+    List<InventoryAnomaly> findByCampaignIdOrderByCreatedAtDesc(UUID campaignId);
+    List<InventoryAnomaly> findAllByOrderByCreatedAtDesc();
+    long countByCampaignId(UUID campaignId);
 }

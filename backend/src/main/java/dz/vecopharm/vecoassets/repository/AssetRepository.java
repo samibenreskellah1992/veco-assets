@@ -4,6 +4,7 @@ import dz.vecopharm.vecoassets.entity.Asset;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,4 +28,13 @@ public interface AssetRepository extends JpaRepository<Asset, UUID>, JpaSpecific
     boolean existsByZoneId(UUID zoneId);
     boolean existsByLocationId(UUID locationId);
     boolean existsByCategoryId(UUID categoryId);
+
+    // Phase 7 : perimetre attendu d'une campagne d'inventaire (site, et zone
+    // si la campagne en cible une) - toujours restreint aux immobilisations
+    // non archivees, une immobilisation reformee/archivee ne fait plus
+    // partie du parc a inventorier. InventoryCampaignService en derive a la
+    // fois la taille du perimetre et les ids (pour le croiser avec les
+    // scans), d'ou des methodes retournant la liste plutot qu'un simple COUNT.
+    List<Asset> findBySiteIdAndDeletedFalse(UUID siteId);
+    List<Asset> findBySiteIdAndZoneIdAndDeletedFalse(UUID siteId, UUID zoneId);
 }

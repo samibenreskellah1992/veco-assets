@@ -9,6 +9,9 @@ import { AssetsPage } from '@/pages/AssetsPage'
 import { AssetFormPage } from '@/pages/AssetFormPage'
 import { AssetDetailPage } from '@/pages/AssetDetailPage'
 import { EtiquetagePage } from '@/pages/EtiquetagePage'
+import { InventoryCampaignsPage } from '@/pages/InventoryCampaignsPage'
+import { InventoryCampaignDetailPage } from '@/pages/InventoryCampaignDetailPage'
+import { AnomaliesPage } from '@/pages/AnomaliesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 
 export function AppRoutes() {
@@ -24,18 +27,13 @@ export function AppRoutes() {
           <Route path="immobilisations/:id" element={<AssetDetailPage />} />
           <Route path="immobilisations/:id/modifier" element={<AssetFormPage />} />
           <Route path="etiquetage" element={<EtiquetagePage />} />
-          <Route
-            path="inventaires"
-            element={<PlaceholderPage title="Inventaires" phase="Phase 7 — Inventaire" />}
-          />
+          <Route path="inventaires" element={<InventoryCampaignsPage />} />
+          <Route path="inventaires/:id" element={<InventoryCampaignDetailPage />} />
           <Route
             path="mouvements"
             element={<PlaceholderPage title="Mouvements" phase="Phase 8 — Mouvements" />}
           />
-          <Route
-            path="anomalies"
-            element={<PlaceholderPage title="Anomalies" phase="Phase 7 — Inventaire" />}
-          />
+          <Route path="anomalies" element={<AnomaliesPage />} />
           <Route path="sites" element={<ReferentielPage />} />
           <Route path="utilisateurs" element={<UsersPage />} />
           <Route

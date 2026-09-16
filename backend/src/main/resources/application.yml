@@ -23,6 +23,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  servlet:
+    multipart:
+      # Photos d'anomalie (Phase 7) : borne large mais pas illimitee -
+      # une photo de telephone raisonnable tient largement dedans.
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -35,6 +42,11 @@ app:
   asset-code:
     prefix: ${ASSET_CODE_PREFIX:VECO-IMM}
     start-number: ${ASSET_CODE_START:1}
+  attachments:
+    # Repertoire de stockage des pieces jointes (photos d'anomalie, Phase 7)
+    # - hors PostgreSQL (prompt maitre section 47). A monter en volume
+    # Docker persistant dans un deploiement reel, jamais un chemin ephemere.
+    storage-dir: ${ATTACHMENTS_STORAGE_DIR:./data/attachments}
 
 springdoc:
   swagger-ui:
