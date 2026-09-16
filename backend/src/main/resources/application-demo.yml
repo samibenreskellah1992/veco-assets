@@ -1,0 +1,9 @@
+# Profil pour une demonstration (ex: presentation DSI / Direction Generale) :
+# memes donnees de demo que le profil dev, mais sans les logs SQL verbeux.
+spring:
+  flyway:
+    locations: classpath:db/migration,classpath:db/seed
+
+logging:
+  level:
+    dz.vecopharm.vecoassets: INFO

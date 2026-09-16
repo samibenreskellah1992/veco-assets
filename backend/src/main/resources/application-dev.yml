@@ -1,6 +1,13 @@
 spring:
   jpa:
     show-sql: true
+  flyway:
+    # Seed de demonstration VECOPHARM (prompt maitre section 42) - jamais
+    # applique en prod, seulement quand le profil dev/demo est actif.
+    # Les migrations de seed vivent dans un bloc de versions reserve
+    # (V900+, voir db/seed/V900__seed_demo_data.sql) pour ne jamais entrer
+    # en collision avec les futures migrations de schema (V10, V11, ...).
+    locations: classpath:db/migration,classpath:db/seed
 
 logging:
   level:

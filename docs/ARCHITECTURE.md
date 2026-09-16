@@ -76,7 +76,8 @@ Tables principales (créées progressivement en Phase 2 via migrations Flyway) :
 
 `users`, `roles`, `permissions`, `user_roles`, `role_permissions` — identité et RBAC.
 `sites`, `buildings`, `floors`, `zones`, `locations` — hiérarchie de localisation (Site → Bâtiment → Étage → Zone → Localisation), entièrement administrable, jamais codée en dur côté frontend.
-`asset_categories` — catégories/sous-catégories d'immobilisations.
+`asset_categories` — catégories/sous-catégories d'immobilisations (auto-référence pour les sous-catégories).
+`asset_label_formats` — formats d'étiquette administrables (largeur/hauteur, contenu affiché) ; ajoutée en Phase 2 pour honorer l'exigence « dimensions jamais codées en dur » (prompt maître section 13), au lieu d'un simple couple clé/valeur générique.
 `assets` — immobilisation (identification, désignation, localisation courante, affectation courante, acquisition, état, statut).
 `asset_assignments` — historique des affectations (utilisateur/service/département responsable dans le temps).
 `asset_movements` — mouvements (affectation, transfert, changement de localisation, maintenance, sortie, réforme), avec ancien/nouveau site, ancienne/nouvelle localisation, ancien/nouvel utilisateur, demandeur, validateur, motif.
@@ -90,10 +91,12 @@ Tables principales (créées progressivement en Phase 2 via migrations Flyway) :
 `settings` — paramètres applicatifs (préfixe de code, format d'étiquette, etc.).
 
 Principes transverses :
-- Toute table métier porte `created_at` / `updated_at`.
-- Contraintes `UNIQUE` sur le code immobilisation (`VECO-IMM-XXXXXX`) et sur le numéro de série quand renseigné.
+- Toute table métier porte `created_at` / `updated_at` ; les tables d'événements append-only (`asset_status_history`, `inventory_scans`, `asset_labels`, `attachments`, `audit_logs`) ne portent que leur horodatage de création — une ligne d'historique n'est jamais modifiée après coup.
+- Contraintes `UNIQUE` sur le code immobilisation (`VECO-IMM-XXXXXX`) et sur le numéro de série quand renseigné (index unique partiel : NULL autorisé en doublon), ainsi qu'une affectation courante unique par immobilisation dans `asset_assignments`.
+- Contraintes `CHECK` en base sur les colonnes d'énumération métier (état, statut, type de mouvement, statut de campagne, ...) en complément du contrôle applicatif — défense en profondeur, la source de vérité reste le service layer.
 - Suppression **logique uniquement** (`deleted = true` ou équivalent) sur les immobilisations : l'historique n'est jamais détruit.
 - Index sur les colonnes de recherche/filtre fréquentes (site, catégorie, état, statut, code).
+- `attachments` est une association polymorphe (`owner_type` + `owner_id`, sans contrainte FK SQL puisque la cible varie par table) pour se rattacher indifféremment à une immobilisation, une anomalie ou un mouvement.
 
 ## 6. Flux métier clés
 

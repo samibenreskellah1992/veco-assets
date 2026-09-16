@@ -105,12 +105,23 @@ Le frontend démarre sur http://localhost:5173 et proxifie `/api` vers `http://l
 
 ## 7. Migrations et données de démonstration
 
-- Migrations : Flyway, `backend/src/main/resources/db/migration/V*__*.sql`. `V1__init.sql` (Phase 1) active l'extension `pgcrypto` ; le schéma métier complet (users, roles, sites, assets, movements, inventories, audit_logs, ...) arrive en Phase 2.
-- Seed de démonstration VECOPHARM (sites VSA/Alger/Oran/Béjaïa/Laghouat, catégories, immobilisations) : prévu en Phase 2, chargé uniquement en profil `dev`/`demo`, jamais en `prod`.
+- Migrations de schéma : Flyway, `backend/src/main/resources/db/migration/V2__*.sql` à `V9__*.sql` (Phase 2) — hiérarchie de localisation (sites/bâtiments/étages/zones/localisations), RBAC (rôles/permissions/utilisateurs), catégories et formats d'étiquette, immobilisations, historique (affectations/mouvements/changements d'état), inventaire (campagnes/scans/anomalies), pièces jointes, audit trail et paramètres. `V1__init.sql` (Phase 1) ne fait qu'activer l'extension `pgcrypto`.
+- Seed de démonstration VECOPHARM : `backend/src/main/resources/db/seed/V900__seed_demo_data.sql` — sites VSA/Alger/Oran/Béjaïa/Laghouat avec une hiérarchie de localisation complète, les 7 catégories du prompt maître, 7 utilisateurs de démo, 12 immobilisations réalistes (variées en catégorie/site/état/statut). Chargé **uniquement** en profil `dev` ou `demo` (`spring.flyway.locations` ajoute `classpath:db/seed`), jamais en `prod`. Numéroté à partir de `V900` pour ne jamais entrer en collision avec les futures migrations de schéma.
+- Ces migrations ont été rejouées à froid sur une base PostgreSQL 16 vierge (V1→V9→seed) dans le cadre de cette session : contraintes uniques (code immobilisation, numéro de série, affectation courante unique par bien), contraintes `CHECK` (énumérations état/statut), intégrité des clés étrangères et stockage JSONB (`audit_logs`) tous vérifiés en conditions réelles.
 
 ## 8. Comptes de démonstration
 
-Pas encore disponibles — l'authentification est construite en Phase 3. Ce README sera mis à jour avec les comptes de démo (login/mot de passe/rôle) à ce moment-là.
+Créés par le seed (Phase 2) mais **pas encore utilisables pour se connecter** : l'authentification (login, JWT) est construite en Phase 3. Mot de passe de démo pour tous les comptes ci-dessous : `VecoDemo#2026` (hash BCrypt réel déjà en base, prêt pour Phase 3).
+
+| Email | Rôle | Site |
+|---|---|---|
+| sami.benreskallah@vecopharm.dz | ADMIN | Alger |
+| ahmed.benali@vecopharm.dz | GESTIONNAIRE_PATRIMOINE | VSA |
+| sarah.gacem@vecopharm.dz | CONSULTATION | Alger |
+| karim.bensalah@vecopharm.dz | RESPONSABLE_SERVICE | Alger |
+| nabil.kaci@vecopharm.dz | RESPONSABLE_SITE | Oran |
+| fatima.zahra@vecopharm.dz | INVENTORISTE | Laghouat |
+| mohamed.reda@vecopharm.dz | INVENTORISTE | VSA |
 
 ## 9. API
 
