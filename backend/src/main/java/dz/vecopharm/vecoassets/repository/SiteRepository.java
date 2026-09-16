@@ -8,4 +8,6 @@ import java.util.UUID;
 
 public interface SiteRepository extends JpaRepository<Site, UUID> {
     Optional<Site> findByCode(String code);
+    boolean existsByCodeIgnoreCase(String code);
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, UUID id);
 }

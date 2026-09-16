@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface LocationRepository extends JpaRepository<Location, UUID> {
     List<Location> findByZoneId(UUID zoneId);
+    boolean existsByZoneId(UUID zoneId);
+    boolean existsByZoneIdAndCodeIgnoreCaseAndIdNot(UUID zoneId, String code, UUID id);
+    boolean existsByZoneIdAndCodeIgnoreCase(UUID zoneId, String code);
 }

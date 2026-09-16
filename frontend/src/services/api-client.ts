@@ -1,4 +1,8 @@
 import axios from 'axios'
+import { clearStoredToken, getStoredToken } from '@/lib/token-storage'
+
+/** Dispatched on window when a request comes back 401 - see hooks/use-auth.tsx. */
+export const UNAUTHORIZED_EVENT = 'veco-assets:unauthorized'
 
 /**
  * Single axios instance for all backend calls. Base URL is empty on
@@ -11,6 +15,26 @@ export const apiClient = axios.create({
   timeout: 15_000,
 })
 
-// TODO (Phase 3 - Authentification): attach the JWT bearer token to every
-// request here via an axios request interceptor, and handle 401 responses
-// with a redirect to /login via a response interceptor.
+// Phase 3/4: attach the JWT bearer token (if any) to every request.
+apiClient.interceptors.request.use((config) => {
+  const token = getStoredToken()
+  if (token) {
+    config.headers.set('Authorization', `Bearer ${token}`)
+  }
+  return config
+})
+
+// A 401 means the token is missing/expired/invalid (JsonAuthenticationEntryPoint,
+// see backend/.../security) - never something a retry would fix. Clear the
+// stale token and let use-auth.tsx react (it owns navigation to /login so
+// this stays a plain axios concern, no router dependency here).
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401 && !error.config?.url?.endsWith('/auth/login')) {
+      clearStoredToken()
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+    }
+    return Promise.reject(error)
+  },
+)

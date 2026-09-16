@@ -10,4 +10,7 @@ import java.util.UUID;
 public interface AssetCategoryRepository extends JpaRepository<AssetCategory, UUID> {
     Optional<AssetCategory> findByCode(String code);
     List<AssetCategory> findByParentId(UUID parentId);
+    boolean existsByParentId(UUID parentId);
+    boolean existsByCodeIgnoreCase(String code);
+    boolean existsByCodeIgnoreCaseAndIdNot(String code, UUID id);
 }

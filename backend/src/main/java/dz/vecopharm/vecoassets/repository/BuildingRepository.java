@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface BuildingRepository extends JpaRepository<Building, UUID> {
     List<Building> findBySiteId(UUID siteId);
+    boolean existsBySiteId(UUID siteId);
+    boolean existsBySiteIdAndCodeIgnoreCaseAndIdNot(UUID siteId, String code, UUID id);
+    boolean existsBySiteIdAndCodeIgnoreCase(UUID siteId, String code);
 }

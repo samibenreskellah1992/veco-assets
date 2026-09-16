@@ -11,6 +11,11 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
     Optional<User> findByMatricule(String matricule);
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, UUID id);
+    boolean existsByEmailIgnoreCase(String email);
+    boolean existsByMatriculeIgnoreCaseAndIdNot(String matricule, UUID id);
+    boolean existsByMatriculeIgnoreCase(String matricule);
+    boolean existsBySiteId(UUID siteId);
 
     /**
      * Eagerly fetches roles and their permissions in one query (both are

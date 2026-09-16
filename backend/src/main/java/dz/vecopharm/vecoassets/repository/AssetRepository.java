@@ -16,4 +16,15 @@ import java.util.UUID;
 public interface AssetRepository extends JpaRepository<Asset, UUID>, JpaSpecificationExecutor<Asset> {
     Optional<Asset> findByAssetCode(String assetCode);
     Optional<Asset> findBySerialNumber(String serialNumber);
+
+    // Utilisees par le Phase 4 referentiel (SiteService, BuildingService, ...)
+    // pour bloquer la suppression d'une donnee encore utilisee par au moins
+    // une immobilisation - en plus de la contrainte FK en base (defense en
+    // profondeur, message d'erreur clair cote API plutot qu'une erreur SQL brute).
+    boolean existsBySiteId(UUID siteId);
+    boolean existsByBuildingId(UUID buildingId);
+    boolean existsByFloorId(UUID floorId);
+    boolean existsByZoneId(UUID zoneId);
+    boolean existsByLocationId(UUID locationId);
+    boolean existsByCategoryId(UUID categoryId);
 }

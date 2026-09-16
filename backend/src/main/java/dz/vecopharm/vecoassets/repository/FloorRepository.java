@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface FloorRepository extends JpaRepository<Floor, UUID> {
     List<Floor> findByBuildingId(UUID buildingId);
+    boolean existsByBuildingId(UUID buildingId);
+    boolean existsByBuildingIdAndCodeIgnoreCaseAndIdNot(UUID buildingId, String code, UUID id);
+    boolean existsByBuildingIdAndCodeIgnoreCase(UUID buildingId, String code);
 }

@@ -8,4 +8,7 @@ import java.util.UUID;
 
 public interface ZoneRepository extends JpaRepository<Zone, UUID> {
     List<Zone> findByFloorId(UUID floorId);
+    boolean existsByFloorId(UUID floorId);
+    boolean existsByFloorIdAndCodeIgnoreCaseAndIdNot(UUID floorId, String code, UUID id);
+    boolean existsByFloorIdAndCodeIgnoreCase(UUID floorId, String code);
 }
