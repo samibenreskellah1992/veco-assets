@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,7 +9,7 @@ import { assetsApi } from '@/services/asset-service'
 import { usersApi } from '@/services/user-service'
 import { sitesApi, buildingsApi, floorsApi, zonesApi, locationsApi, assetCategoriesApi } from '@/services/referentiel-service'
 import { extractApiErrorMessage } from '@/lib/api-error'
-import { ASSET_CONDITION_LABEL, ASSET_STATUS_LABEL, type AssetCondition, type AssetStatus } from '@/types/asset'
+import { ASSET_CONDITION_LABEL, ASSET_STATUS_LABEL, type AssetCondition, type AssetStatus, type AssetDto } from '@/types/asset'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -77,6 +76,36 @@ const EMPTY_VALUES: AssetFormValues = {
   changeComment: '',
 }
 
+function assetToFormValues(asset: AssetDto): AssetFormValues {
+  return {
+    designation: asset.designation,
+    categoryId: asset.categoryId,
+    brand: asset.brand ?? '',
+    model: asset.model ?? '',
+    serialNumber: asset.serialNumber ?? '',
+    siteId: asset.siteId,
+    buildingId: asset.buildingId ?? NONE,
+    floorId: asset.floorId ?? NONE,
+    zoneId: asset.zoneId ?? NONE,
+    locationId: asset.locationId ?? NONE,
+    direction: asset.direction ?? '',
+    department: asset.department ?? '',
+    service: asset.service ?? '',
+    currentUserId: asset.currentUserId ?? NONE,
+    responsibleUserId: asset.responsibleUserId ?? NONE,
+    acquisitionDate: asset.acquisitionDate ?? '',
+    supplier: asset.supplier ?? '',
+    invoiceNumber: asset.invoiceNumber ?? '',
+    acquisitionValue: asset.acquisitionValue != null ? String(asset.acquisitionValue) : '',
+    commissioningDate: asset.commissioningDate ?? '',
+    warrantyUntil: asset.warrantyUntil ?? '',
+    condition: asset.condition,
+    status: asset.status,
+    comment: asset.comment ?? '',
+    changeComment: '',
+  }
+}
+
 function undef(value: string) {
   return value === '' || value === NONE ? undefined : value
 }
@@ -84,8 +113,6 @@ function undef(value: string) {
 export function AssetFormPage() {
   const { id } = useParams<{ id: string }>()
   const editing = Boolean(id)
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   const { data: asset, isLoading: loadingAsset } = useQuery({
     queryKey: ['assets', id],
@@ -93,13 +120,40 @@ export function AssetFormPage() {
     enabled: editing,
   })
 
+  // Le formulaire (et donc useForm) ne doit pas monter tant que l'immobilisation a
+  // modifier n'est pas chargee : useForm calcule ses defaultValues une seule fois,
+  // au tout premier rendu du composant. Le monter avant que `asset` soit disponible
+  // puis le "rattraper" via reset()/l'option `values` cree une course avec
+  // l'enregistrement des champs pilotes par Controller (tous les Select :
+  // Categorie/Site/Batiment/Etage/Zone/Local/Utilisateur actuel/Responsable/Etat/
+  // Statut) : `_defaultValues` se met a jour en interne mais pas `_formValues` (ce
+  // qui s'affiche et se soumet), qui reste vide pour ces champs. En gardant la page
+  // non montee tant que `asset` n'est pas pret, useForm recoit les vraies valeurs
+  // des le montage du formulaire : plus de reset asynchrone, plus de course. Bug
+  // trouve en recette le 17/09/2026 (formulaire "Modifier" d'une immobilisation :
+  // Categorie/Site affiches vides, sauvegarde bloquee par "Categorie
+  // requise"/"Site requis"). La tentative precedente avec l'option `values` de
+  // react-hook-form n'a pas corrige le bug : `values` est elle-meme synchronisee en
+  // interne via un useEffect qui appelle _reset() apres le montage - memes
+  // caracteristiques de timing qu'un useEffect + reset() manuel.
+  if (editing && loadingAsset) {
+    return <p className="text-sm text-muted-foreground">Chargement...</p>
+  }
+
+  return <AssetForm asset={editing ? (asset ?? null) : null} editing={editing} id={id} />
+}
+
+function AssetForm({ asset, editing, id }: { asset: AssetDto | null; editing: boolean; id?: string }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
   const { data: sites } = useQuery({ queryKey: ['sites'], queryFn: sitesApi.list })
   const { data: categories } = useQuery({ queryKey: ['asset-categories'], queryFn: assetCategoriesApi.list })
   const { data: users } = useQuery({ queryKey: ['users'], queryFn: usersApi.list })
 
   const form = useForm<AssetFormValues>({
     resolver: zodResolver(assetSchema),
-    defaultValues: EMPTY_VALUES,
+    defaultValues: asset ? assetToFormValues(asset) : EMPTY_VALUES,
   })
 
   const siteId = form.watch('siteId')
@@ -127,39 +181,6 @@ export function AssetFormPage() {
     queryFn: () => locationsApi.list(zoneId),
     enabled: zoneId !== NONE && Boolean(zoneId),
   })
-
-  useEffect(() => {
-    if (asset) {
-      form.reset({
-        designation: asset.designation,
-        categoryId: asset.categoryId,
-        brand: asset.brand ?? '',
-        model: asset.model ?? '',
-        serialNumber: asset.serialNumber ?? '',
-        siteId: asset.siteId,
-        buildingId: asset.buildingId ?? NONE,
-        floorId: asset.floorId ?? NONE,
-        zoneId: asset.zoneId ?? NONE,
-        locationId: asset.locationId ?? NONE,
-        direction: asset.direction ?? '',
-        department: asset.department ?? '',
-        service: asset.service ?? '',
-        currentUserId: asset.currentUserId ?? NONE,
-        responsibleUserId: asset.responsibleUserId ?? NONE,
-        acquisitionDate: asset.acquisitionDate ?? '',
-        supplier: asset.supplier ?? '',
-        invoiceNumber: asset.invoiceNumber ?? '',
-        acquisitionValue: asset.acquisitionValue != null ? String(asset.acquisitionValue) : '',
-        commissioningDate: asset.commissioningDate ?? '',
-        warrantyUntil: asset.warrantyUntil ?? '',
-        condition: asset.condition,
-        status: asset.status,
-        comment: asset.comment ?? '',
-        changeComment: '',
-      })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asset])
 
   const saveMutation = useMutation({
     mutationFn: (values: AssetFormValues) => {
@@ -204,10 +225,6 @@ export function AssetFormPage() {
     },
     onError: (error) => toast.error(extractApiErrorMessage(error)),
   })
-
-  if (editing && loadingAsset) {
-    return <p className="text-sm text-muted-foreground">Chargement...</p>
-  }
 
   return (
     <div className="space-y-4">
