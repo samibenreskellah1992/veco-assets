@@ -44,7 +44,10 @@ public class ReportExcelExporter {
             Row titleRow = sheet.createRow(rowIndex++);
             titleRow.createCell(0).setCellValue(report.title());
             titleRow.getCell(0).setCellStyle(titleStyle);
-            if (!report.columns().isEmpty()) {
+            // Fusionner necessite au moins 2 cellules (POI rejette une "fusion"
+            // d'une seule cellule avec IllegalArgumentException) - un rapport a
+            // une seule colonne n'a donc simplement pas de titre fusionne.
+            if (report.columns().size() > 1) {
                 sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, report.columns().size() - 1));
             }
 

@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 
@@ -41,6 +42,11 @@ class AssetCodeGeneratorTest {
 
     @BeforeEach
     void setUp() {
+        // AssetCodeGenerator melange injection par constructeur (SettingRepository) et
+        // par champ (@PersistenceContext EntityManager) - @InjectMocks de Mockito choisit
+        // le constructeur et n'injecte alors plus aucun champ, laissant entityManager a
+        // null (NullPointerException a l'execution reelle, trouve par mvn test - Phase 10).
+        ReflectionTestUtils.setField(assetCodeGenerator, "entityManager", entityManager);
         when(entityManager.createNativeQuery("select nextval('asset_code_seq')")).thenReturn(query);
         when(query.getSingleResult()).thenReturn(42L);
     }
