@@ -52,12 +52,13 @@ public class AssetController {
             @RequestParam(name = "includeDeleted", defaultValue = "false") boolean includeDeleted,
             @RequestParam(name = "siteId", required = false) UUID siteId,
             @RequestParam(name = "categoryId", required = false) UUID categoryId,
+            @RequestParam(name = "locationId", required = false) UUID locationId,
             @RequestParam(name = "condition", required = false) AssetCondition condition,
             @RequestParam(name = "status", required = false) AssetStatus status,
             @RequestParam(name = "labeled", required = false) Boolean labeled,
             @RequestParam(name = "search", required = false) String search
     ) {
-        return assetService.list(pageable, includeDeleted, siteId, categoryId, condition, status, labeled, search);
+        return assetService.list(pageable, includeDeleted, siteId, categoryId, locationId, condition, status, labeled, search);
     }
 
     @GetMapping("/{id}")

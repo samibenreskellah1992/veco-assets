@@ -40,6 +40,15 @@ public class LocationController {
         return locationService.findById(id);
     }
 
+    // Checkpoint 1 "locaux scannables" : point d'entree consulte par le
+    // futur scan de local (le QR imprime encode ce code) - ouvert a tout
+    // utilisateur authentifie, meme niveau que les autres GET ci-dessus
+    // (n'importe quel inventoriste doit pouvoir scanner un local).
+    @GetMapping("/by-code/{code}")
+    public LocationDto findByCode(@PathVariable String code) {
+        return locationService.findByQrCode(code);
+    }
+
     @PostMapping
     @PreAuthorize("hasAuthority('REFERENTIEL_MANAGE')")
     public ResponseEntity<LocationDto> create(@Valid @RequestBody LocationRequest request) {

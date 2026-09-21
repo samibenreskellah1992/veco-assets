@@ -121,6 +121,7 @@ export interface AssetListParams {
   includeDeleted?: boolean
   siteId?: string
   categoryId?: string
+  locationId?: string
   condition?: AssetCondition
   status?: AssetStatus
   labeled?: boolean

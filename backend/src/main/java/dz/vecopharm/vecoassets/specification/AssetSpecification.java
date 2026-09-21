@@ -25,6 +25,7 @@ public final class AssetSpecification {
             boolean includeDeleted,
             UUID siteId,
             UUID categoryId,
+            UUID locationId,
             AssetCondition condition,
             AssetStatus status,
             Boolean labeled,
@@ -38,6 +39,9 @@ public final class AssetSpecification {
             }
             if (siteId != null) {
                 predicates.add(cb.equal(root.get("site").get("id"), siteId));
+            }
+            if (locationId != null) {
+                predicates.add(cb.equal(root.get("location").get("id"), locationId));
             }
             if (categoryId != null) {
                 predicates.add(cb.equal(root.get("category").get("id"), categoryId));

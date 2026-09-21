@@ -62,6 +62,7 @@ export const zonesApi = {
 export const locationsApi = {
   list: async (zoneId?: string) =>
     (await apiClient.get<LocationDto[]>('/locations', { params: zoneId ? { zoneId } : undefined })).data,
+  get: async (id: string) => (await apiClient.get<LocationDto>(`/locations/${id}`)).data,
   create: async (request: LocationRequest) => (await apiClient.post<LocationDto>('/locations', request)).data,
   update: async (id: string, request: LocationRequest) =>
     (await apiClient.put<LocationDto>(`/locations/${id}`, request)).data,

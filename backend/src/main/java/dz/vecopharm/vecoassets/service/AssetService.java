@@ -121,12 +121,13 @@ public class AssetService {
             boolean includeDeleted,
             UUID siteId,
             UUID categoryId,
+            UUID locationId,
             AssetCondition condition,
             AssetStatus status,
             Boolean labeled,
             String search
     ) {
-        var specification = AssetSpecification.withFilters(includeDeleted, siteId, categoryId, condition, status, labeled, search);
+        var specification = AssetSpecification.withFilters(includeDeleted, siteId, categoryId, locationId, condition, status, labeled, search);
         return PageResponse.from(assetRepository.findAll(specification, pageable).map(assetMapper::toDto));
     }
 

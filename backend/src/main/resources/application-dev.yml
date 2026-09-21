@@ -8,6 +8,15 @@ spring:
     # (V900+, voir db/seed/V900__seed_demo_data.sql) pour ne jamais entrer
     # en collision avec les futures migrations de schema (V10, V11, ...).
     locations: classpath:db/migration,classpath:db/seed
+    # Consequence directe de la convention ci-dessus : des qu'une base dev/demo
+    # a deja recu le seed (V900), toute NOUVELLE migration de schema ajoutee
+    # ensuite (V14, V15, ...) porte un numero INFERIEUR a une migration deja
+    # appliquee (V900) - Flyway refuse ca par defaut ("out of order"). Ce n'est
+    # jamais le cas en production (les migrations de schema y sont toutes
+    # appliquees avant qu'aucun seed n'existe), donc ce reglage reste local au
+    # profil dev/demo. Trouve le 21/09/2026 au premier ajout d'une migration
+    # de schema (V14) depuis que le seed avait deja tourne.
+    out-of-order: true
 
 logging:
   level:

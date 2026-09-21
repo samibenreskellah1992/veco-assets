@@ -79,7 +79,7 @@ public class ReportService {
 
     /** Filtres pertinents pour toutes les repartitions et listes basees sur les immobilisations : site/categorie/etat/statut. */
     private List<Asset> filteredAssets(ReportFilter filter) {
-        var spec = AssetSpecification.withFilters(false, filter.siteId(), filter.categoryId(), filter.condition(), filter.status(), null, null);
+        var spec = AssetSpecification.withFilters(false, filter.siteId(), filter.categoryId(), null, filter.condition(), filter.status(), null, null);
         return assetRepository.findAll(spec);
     }
 

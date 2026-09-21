@@ -3,6 +3,10 @@
 spring:
   flyway:
     locations: classpath:db/migration,classpath:db/seed
+    # Meme raison que le profil dev (voir application-dev.yml) : une base
+    # demo deja seedee (V900) rendrait toute nouvelle migration de schema
+    # ulterieure "out of order" par defaut.
+    out-of-order: true
 
 logging:
   level:

@@ -8,6 +8,9 @@ import { UsersPage } from '@/pages/UsersPage'
 import { AssetsPage } from '@/pages/AssetsPage'
 import { AssetFormPage } from '@/pages/AssetFormPage'
 import { AssetDetailPage } from '@/pages/AssetDetailPage'
+import { LocationsPage } from '@/pages/LocationsPage'
+import { LocationFormPage } from '@/pages/LocationFormPage'
+import { LocationDetailPage } from '@/pages/LocationDetailPage'
 import { EtiquetagePage } from '@/pages/EtiquetagePage'
 import { InventoryCampaignsPage } from '@/pages/InventoryCampaignsPage'
 import { InventoryCampaignDetailPage } from '@/pages/InventoryCampaignDetailPage'
@@ -28,6 +31,10 @@ export function AppRoutes() {
           <Route path="immobilisations/nouveau" element={<AssetFormPage />} />
           <Route path="immobilisations/:id" element={<AssetDetailPage />} />
           <Route path="immobilisations/:id/modifier" element={<AssetFormPage />} />
+          <Route path="locaux" element={<LocationsPage />} />
+          <Route path="locaux/nouveau" element={<LocationFormPage />} />
+          <Route path="locaux/:id" element={<LocationDetailPage />} />
+          <Route path="locaux/:id/modifier" element={<LocationFormPage />} />
           <Route path="etiquetage" element={<EtiquetagePage />} />
           <Route path="inventaires" element={<InventoryCampaignsPage />} />
           <Route path="inventaires/:id" element={<InventoryCampaignDetailPage />} />
