@@ -31,7 +31,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @Entity
 @Table(name = "locations")
-public class Location extends BaseEntity {
+public class Location extends BaseEntity implements LabelPrintable {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "zone_id", nullable = false)
@@ -64,4 +64,22 @@ public class Location extends BaseEntity {
 
     @Column(name = "last_inventory_at")
     private Instant lastInventoryAt;
+
+    /** Checkpoint 2 "locaux scannables" (2026-09) : au moins une etiquette a deja ete generee pour ce local - meme convention que {@code Asset.labeled}. */
+    @Column(nullable = false)
+    private boolean labeled = false;
+
+    // --- LabelPrintable (Checkpoint 2) -------------------------------------
+    // Le QR/code-barres d'un local encode toujours son qrCode (genere a la
+    // creation, immuable - voir LocationCodeGenerator), la designation
+    // courte est son nom.
+    @Override
+    public String getLabelCode() {
+        return qrCode;
+    }
+
+    @Override
+    public String getLabelDesignation() {
+        return name;
+    }
 }

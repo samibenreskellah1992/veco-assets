@@ -52,7 +52,7 @@ import java.time.LocalDate;
                 @NamedSubgraph(name = "currentUser.site", attributeNodes = @NamedAttributeNode("site"))
         }
 )
-public class Asset extends BaseEntity {
+public class Asset extends BaseEntity implements LabelPrintable {
 
     // --- Identification ---------------------------------------------------
     @Column(name = "asset_code", nullable = false, unique = true, length = 30)
@@ -158,4 +158,18 @@ public class Asset extends BaseEntity {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    // --- LabelPrintable (Checkpoint 2 "locaux scannables", 2026-09) -------
+    // Delegue vers les champs existants plutot que de renommer quoi que ce
+    // soit : le QR/code-barres d'une immobilisation encode toujours son
+    // assetCode (inchange), la designation courte reste sa designation.
+    @Override
+    public String getLabelCode() {
+        return assetCode;
+    }
+
+    @Override
+    public String getLabelDesignation() {
+        return designation;
+    }
 }

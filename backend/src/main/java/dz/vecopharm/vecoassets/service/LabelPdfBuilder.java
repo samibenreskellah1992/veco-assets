@@ -1,7 +1,7 @@
 package dz.vecopharm.vecoassets.service;
 
-import dz.vecopharm.vecoassets.entity.Asset;
 import dz.vecopharm.vecoassets.entity.AssetLabelFormat;
+import dz.vecopharm.vecoassets.entity.LabelPrintable;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -22,10 +22,15 @@ import java.util.List;
 
 /**
  * Construit le PDF d'etiquettes (prompt maitre Phase 6) : une page par
- * immobilisation selectionnee, aux dimensions REELLES du format choisi
+ * objet imprimable selectionne, aux dimensions REELLES du format choisi
  * (jamais une taille A4 generique decoupee arbitrairement) - le format
  * pilote a la fois la taille de page et ce qui est affiche (logo,
  * designation courte, QR code, code-barres), jamais code en dur ici.
+ *
+ * <p>Checkpoint 2 de l'evolution "locaux scannables" (2026-09) : ce
+ * builder ne connait que {@link LabelPrintable} (Asset et Location
+ * l'implementent tous les deux) - la mise en page QR/texte est identique
+ * pour une immobilisation et un local, pas de raison de la dupliquer.</p>
  */
 @Component
 public class LabelPdfBuilder {
@@ -42,18 +47,18 @@ public class LabelPdfBuilder {
         this.imageGenerator = imageGenerator;
     }
 
-    public byte[] build(List<Asset> assets, AssetLabelFormat format) {
+    public byte[] build(List<? extends LabelPrintable> items, AssetLabelFormat format) {
         try (PDDocument document = new PDDocument()) {
             float widthPt = toPt(format.getWidthMm());
             float heightPt = toPt(format.getHeightMm());
             PDFont bold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
             PDFont regular = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
 
-            for (Asset asset : assets) {
+            for (LabelPrintable item : items) {
                 PDPage page = new PDPage(new PDRectangle(widthPt, heightPt));
                 document.addPage(page);
                 try (PDPageContentStream stream = new PDPageContentStream(document, page)) {
-                    renderLabel(document, stream, asset, format, widthPt, heightPt, bold, regular);
+                    renderLabel(document, stream, item, format, widthPt, heightPt, bold, regular);
                 }
             }
 
@@ -68,7 +73,7 @@ public class LabelPdfBuilder {
     private void renderLabel(
             PDDocument document,
             PDPageContentStream stream,
-            Asset asset,
+            LabelPrintable item,
             AssetLabelFormat format,
             float widthPt,
             float heightPt,
@@ -94,7 +99,7 @@ public class LabelPdfBuilder {
         if (format.isShowShortDesignation()) {
             float fontSize = clamp(heightPt * 0.09f, 4.5f, 8f);
             cursorY -= fontSize;
-            String designation = truncateToWidth(regular, fontSize, sanitize(asset.getDesignation()), contentWidth);
+            String designation = truncateToWidth(regular, fontSize, sanitize(item.getLabelDesignation()), contentWidth);
             drawCenteredText(stream, regular, fontSize, designation, widthPt / 2, cursorY);
             cursorY -= fontSize * 0.5f;
         }
@@ -102,25 +107,25 @@ public class LabelPdfBuilder {
         float codeFontSize = clamp(heightPt * 0.09f, 4.5f, 8f);
         float reservedForCode = codeFontSize + margin * 0.5f;
         float symbolsAreaHeight = Math.max(cursorY - margin - reservedForCode, 0);
-        String assetCode = sanitize(asset.getAssetCode());
+        String printedCode = sanitize(item.getLabelCode());
 
         if (format.isShowQrCode() && format.isShowBarcode()) {
             float qrSize = Math.min(symbolsAreaHeight * 0.62f, contentWidth * 0.62f);
-            drawQrCode(document, stream, assetCode, widthPt / 2 - qrSize / 2, cursorY - qrSize, qrSize);
+            drawQrCode(document, stream, printedCode, widthPt / 2 - qrSize / 2, cursorY - qrSize, qrSize);
             float barcodeHeight = symbolsAreaHeight * 0.28f;
             float barcodeY = cursorY - symbolsAreaHeight;
-            drawBarcode(document, stream, assetCode, margin, barcodeY, contentWidth, barcodeHeight);
+            drawBarcode(document, stream, printedCode, margin, barcodeY, contentWidth, barcodeHeight);
         } else if (format.isShowQrCode()) {
             float qrSize = Math.min(symbolsAreaHeight * 0.9f, contentWidth * 0.9f);
             float qrY = cursorY - symbolsAreaHeight / 2 - qrSize / 2;
-            drawQrCode(document, stream, assetCode, widthPt / 2 - qrSize / 2, qrY, qrSize);
+            drawQrCode(document, stream, printedCode, widthPt / 2 - qrSize / 2, qrY, qrSize);
         } else if (format.isShowBarcode()) {
             float barcodeHeight = symbolsAreaHeight * 0.55f;
             float barcodeY = cursorY - symbolsAreaHeight / 2 - barcodeHeight / 2;
-            drawBarcode(document, stream, assetCode, margin, barcodeY, contentWidth, barcodeHeight);
+            drawBarcode(document, stream, printedCode, margin, barcodeY, contentWidth, barcodeHeight);
         }
 
-        drawCenteredText(stream, regular, codeFontSize, assetCode, widthPt / 2, margin + codeFontSize * 0.2f);
+        drawCenteredText(stream, regular, codeFontSize, printedCode, widthPt / 2, margin + codeFontSize * 0.2f);
     }
 
     private void drawQrCode(PDDocument document, PDPageContentStream stream, String content, float x, float y, float sizePt) throws IOException {

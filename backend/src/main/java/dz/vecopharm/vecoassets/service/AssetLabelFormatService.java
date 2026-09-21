@@ -10,6 +10,7 @@ import dz.vecopharm.vecoassets.exception.ResourceNotFoundException;
 import dz.vecopharm.vecoassets.mapper.AssetLabelFormatMapper;
 import dz.vecopharm.vecoassets.repository.AssetLabelFormatRepository;
 import dz.vecopharm.vecoassets.repository.AssetLabelRepository;
+import dz.vecopharm.vecoassets.repository.LocationLabelRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,23 +26,32 @@ import java.util.UUID;
  * suppression que le referentiel en Phase 4) - sinon on desactive
  * ({@link #setActive}) pour ne jamais casser l'historique
  * {@code asset_labels} deja genere avec ce format.
+ *
+ * <p>Checkpoint 2 "locaux scannables" (2026-09) : ce meme format est
+ * desormais aussi utilise pour les etiquettes de local ({@code
+ * location_labels}, voir {@link dz.vecopharm.vecoassets.service.LocationLabelService})
+ * - la suppression est donc bloquee si l'une OU l'autre table y fait
+ * reference.</p>
  */
 @Service
 public class AssetLabelFormatService {
 
     private final AssetLabelFormatRepository formatRepository;
     private final AssetLabelRepository assetLabelRepository;
+    private final LocationLabelRepository locationLabelRepository;
     private final AssetLabelFormatMapper formatMapper;
     private final AuditRecorder auditRecorder;
 
     public AssetLabelFormatService(
             AssetLabelFormatRepository formatRepository,
             AssetLabelRepository assetLabelRepository,
+            LocationLabelRepository locationLabelRepository,
             AssetLabelFormatMapper formatMapper,
             AuditRecorder auditRecorder
     ) {
         this.formatRepository = formatRepository;
         this.assetLabelRepository = assetLabelRepository;
+        this.locationLabelRepository = locationLabelRepository;
         this.formatMapper = formatMapper;
         this.auditRecorder = auditRecorder;
     }
@@ -99,7 +109,7 @@ public class AssetLabelFormatService {
     @Transactional
     public void delete(UUID id) {
         AssetLabelFormat format = getOrThrow(id);
-        if (assetLabelRepository.existsByFormatId(id)) {
+        if (assetLabelRepository.existsByFormatId(id) || locationLabelRepository.existsByFormatId(id)) {
             throw new BusinessRuleException(
                     "Impossible de supprimer ce format : des etiquettes ont deja ete generees avec. Desactivez-le plutot.");
         }

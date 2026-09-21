@@ -91,6 +91,7 @@ export interface LocationDto {
   buildingName: string | null
   floorId: string | null
   floorName: string | null
+  labeled: boolean
 }
 
 export interface LocationRequest {

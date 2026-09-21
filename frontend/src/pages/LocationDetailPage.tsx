@@ -46,10 +46,12 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 /**
  * Checkpoint 1 de l'evolution "locaux scannables" (2026-09) : fiche de
- * consultation d'un local. N'affiche que le nombre d'immobilisations
- * rattachées et le dernier inventaire — la comparaison attendu/scanné, les
- * anomalies et le scan QR lui-même sont des phases suivantes, hors
- * périmètre ici (voir le prompt détaillé de Sami, sections 6+).
+ * consultation d'un local (nombre d'immobilisations rattachées, dernier
+ * inventaire). Checkpoint 2 (2026-09) y ajoute le statut "Étiqueté" -
+ * generer une etiquette se fait depuis Étiquetage → Locaux, pas ici. La
+ * comparaison attendu/scanné, les anomalies et le scan QR lui-même restent
+ * des phases suivantes, hors périmètre (voir le prompt détaillé de Sami,
+ * sections 6+).
  */
 export function LocationDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -125,6 +127,7 @@ export function LocationDetailPage() {
             label="Dernier inventaire"
             value={location.lastInventoryAt ? formatDateTime(location.lastInventoryAt) : 'Jamais inventorié'}
           />
+          <Field label="Étiqueté" value={location.labeled ? 'Oui' : 'Non'} />
         </CardContent>
       </Card>
 

@@ -37,3 +37,18 @@ export interface LabelGenerationRequest {
   assetIds: string[]
   formatId: string
 }
+
+// Checkpoint 2 "locaux scannables" (2026-09) - mirroir des DTOs ci-dessus pour les locaux.
+export interface LocationLabelDto {
+  id: string
+  formatId: string
+  formatCode: string
+  formatName: string
+  generatedByName: string | null
+  generatedAt: string
+}
+
+export interface LocationLabelGenerationRequest {
+  locationIds: string[]
+  formatId: string
+}

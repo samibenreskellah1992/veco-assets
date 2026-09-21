@@ -33,6 +33,7 @@ public record LocationDto(
         UUID buildingId,
         String buildingName,
         UUID floorId,
-        String floorName
+        String floorName,
+        boolean labeled
 ) {
 }

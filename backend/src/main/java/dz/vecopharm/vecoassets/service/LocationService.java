@@ -193,7 +193,8 @@ public class LocationService {
                 dto.id(), dto.zoneId(), dto.zoneName(), dto.code(), dto.name(), dto.active(),
                 dto.status(), dto.qrCode(), dto.description(), dto.responsibleUserId(), dto.responsibleUserName(),
                 dto.lastInventoryAt(), assetCount,
-                dto.siteId(), dto.siteName(), dto.buildingId(), dto.buildingName(), dto.floorId(), dto.floorName()
+                dto.siteId(), dto.siteName(), dto.buildingId(), dto.buildingName(), dto.floorId(), dto.floorName(),
+                dto.labeled()
         );
     }
 }

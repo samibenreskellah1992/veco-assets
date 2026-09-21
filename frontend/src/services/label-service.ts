@@ -1,5 +1,12 @@
 import { apiClient } from '@/services/api-client'
-import type { AssetLabelDto, AssetLabelFormatDto, AssetLabelFormatRequest, LabelGenerationRequest } from '@/types/label'
+import type {
+  AssetLabelDto,
+  AssetLabelFormatDto,
+  AssetLabelFormatRequest,
+  LabelGenerationRequest,
+  LocationLabelDto,
+  LocationLabelGenerationRequest,
+} from '@/types/label'
 
 export const assetLabelFormatsApi = {
   list: async () => (await apiClient.get<AssetLabelFormatDto[]>('/asset-label-formats')).data,
@@ -17,4 +24,9 @@ export const labelsApi = {
   generate: async (request: LabelGenerationRequest) =>
     (await apiClient.post('/labels/generate', request, { responseType: 'blob' })).data as Blob,
   historyForAsset: async (assetId: string) => (await apiClient.get<AssetLabelDto[]>(`/assets/${assetId}/labels`)).data,
+  // Checkpoint 2 "locaux scannables" (2026-09) - mirroir des deux methodes ci-dessus pour les locaux.
+  generateForLocations: async (request: LocationLabelGenerationRequest) =>
+    (await apiClient.post('/labels/generate-locations', request, { responseType: 'blob' })).data as Blob,
+  historyForLocation: async (locationId: string) =>
+    (await apiClient.get<LocationLabelDto[]>(`/locations/${locationId}/labels`)).data,
 }
