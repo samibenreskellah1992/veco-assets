@@ -14,7 +14,13 @@ import lombok.Setter;
 
 import java.time.Instant;
 
-/** Un scan realise pendant une campagne d'inventaire. */
+/**
+ * Un scan realise pendant une campagne d'inventaire OU pendant une session
+ * de scan de local (Checkpoint 3, 2026-09 - {@link LocationInventorySession}).
+ * Exactement une des deux references {@code campaign}/{@code
+ * locationSession} est renseignee (jamais les deux ni aucune, contrainte
+ * CHECK V17) - voir {@code InventoryScanService} pour les deux workflows.
+ */
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,9 +28,14 @@ import java.time.Instant;
 @Table(name = "inventory_scans")
 public class InventoryScan extends BaseCreatedEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "campaign_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campaign_id")
     private InventoryCampaign campaign;
+
+    /** Checkpoint 3 (2026-09) - voir la javadoc de classe. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_session_id")
+    private LocationInventorySession locationSession;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "asset_id", nullable = false)

@@ -1,6 +1,7 @@
 /** Mirrors the backend DTOs 1:1 (dz.vecopharm.vecoassets.dto) - see docs/ARCHITECTURE.md, Phase 7 (Inventaire). */
 
 export type CampaignStatus = 'BROUILLON' | 'EN_PREPARATION' | 'EN_COURS' | 'TERMINE' | 'VALIDE' | 'CLOTURE'
+export type LocationSessionStatus = 'EN_COURS' | 'VALIDEE'
 export type ScanResult = 'PRESENT' | 'ANOMALIE'
 export type AnomalyType =
   | 'INTROUVABLE'
@@ -52,8 +53,9 @@ export interface CampaignProgressDto {
 
 export interface InventoryScanDto {
   id: string
-  campaignId: string
+  campaignId: string | null
   campaignName: string | null
+  locationSessionId: string | null
   assetId: string | null
   assetCode: string | null
   assetDesignation: string | null
@@ -73,8 +75,9 @@ export interface ScanRequest {
 
 export interface InventoryAnomalyDto {
   id: string
-  campaignId: string
+  campaignId: string | null
   campaignName: string | null
+  locationSessionId: string | null
   assetId: string | null
   assetCode: string | null
   assetDesignation: string | null
@@ -144,4 +147,40 @@ export const ANOMALY_STATUS_LABEL: Record<AnomalyStatus, string> = {
   EN_COURS: 'En cours',
   RESOLUE: 'Résolue',
   REJETEE: 'Rejetée',
+}
+
+/**
+ * Session de scan d'inventaire pour UN local (Checkpoint 3 de l'evolution
+ * "locaux scannables", 2026-09) - plus légère qu'une InventoryCampaignDto
+ * ci-dessus : pas de dates ni de responsable, un seul local à la fois.
+ */
+export interface LocationInventorySessionDto {
+  id: string
+  locationId: string
+  locationCode: string | null
+  locationName: string | null
+  openedById: string | null
+  openedByName: string | null
+  openedAt: string
+  status: LocationSessionStatus
+  validatedById: string | null
+  validatedByName: string | null
+  validatedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface LocationSessionProgressDto {
+  sessionId: string
+  totalAssetsExpected: number
+  scannedAssetsCount: number
+  presentCount: number
+  anomaliesCount: number
+  remainingCount: number
+  progressPercent: number
+}
+
+export const LOCATION_SESSION_STATUS_LABEL: Record<LocationSessionStatus, string> = {
+  EN_COURS: 'En cours',
+  VALIDEE: 'Validée',
 }

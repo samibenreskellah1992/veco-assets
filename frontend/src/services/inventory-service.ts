@@ -8,6 +8,8 @@ import type {
   InventoryCampaignDto,
   InventoryCampaignRequest,
   InventoryScanDto,
+  LocationInventorySessionDto,
+  LocationSessionProgressDto,
   ScanRequest,
   ScanResponse,
   AnomalyStatus,
@@ -31,6 +33,25 @@ export const inventoryCampaignsApi = {
   anomalies: async (id: string) => (await apiClient.get<InventoryAnomalyDto[]>(`/inventory-campaigns/${id}/anomalies`)).data,
   scan: async (id: string, request: ScanRequest) =>
     (await apiClient.post<ScanResponse>(`/inventory-campaigns/${id}/scans`, request)).data,
+}
+
+export const locationInventorySessionsApi = {
+  list: async (params?: { locationId?: string }) =>
+    (await apiClient.get<LocationInventorySessionDto[]>('/location-inventory-sessions', { params })).data,
+  get: async (id: string) => (await apiClient.get<LocationInventorySessionDto>(`/location-inventory-sessions/${id}`)).data,
+  open: async (locationId: string) =>
+    (await apiClient.post<LocationInventorySessionDto>('/location-inventory-sessions', { locationId })).data,
+  validate: async (id: string) =>
+    (await apiClient.post<LocationInventorySessionDto>(`/location-inventory-sessions/${id}/validate`)).data,
+  progress: async (id: string) =>
+    (await apiClient.get<LocationSessionProgressDto>(`/location-inventory-sessions/${id}/progress`)).data,
+  pendingAssets: async (id: string) =>
+    (await apiClient.get<AssetDto[]>(`/location-inventory-sessions/${id}/pending-assets`)).data,
+  scans: async (id: string) => (await apiClient.get<InventoryScanDto[]>(`/location-inventory-sessions/${id}/scans`)).data,
+  anomalies: async (id: string) =>
+    (await apiClient.get<InventoryAnomalyDto[]>(`/location-inventory-sessions/${id}/anomalies`)).data,
+  scan: async (id: string, request: ScanRequest) =>
+    (await apiClient.post<ScanResponse>(`/location-inventory-sessions/${id}/scans`, request)).data,
 }
 
 export const assetInventoryHistoryApi = {

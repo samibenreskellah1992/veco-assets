@@ -1,12 +1,16 @@
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, Pencil, ScanLine } from 'lucide-react'
+import { toast } from 'sonner'
 
 import { useAuth } from '@/hooks/use-auth'
 import { locationsApi } from '@/services/referentiel-service'
 import { assetsApi } from '@/services/asset-service'
+import { locationInventorySessionsApi } from '@/services/inventory-service'
+import { extractApiErrorMessage } from '@/lib/api-error'
 import { LOCATION_STATUS_LABEL, type LocationStatus } from '@/types/referentiel'
 import { ASSET_CONDITION_LABEL, ASSET_STATUS_LABEL, type AssetCondition, type AssetStatus } from '@/types/asset'
+import { LOCATION_SESSION_STATUS_LABEL, type LocationSessionStatus } from '@/types/inventory'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -30,6 +34,10 @@ function statusAssetBadgeVariant(status: AssetStatus) {
   return 'secondary' as const
 }
 
+function sessionStatusBadgeVariant(status: LocationSessionStatus) {
+  return status === 'VALIDEE' ? ('success' as const) : ('default' as const)
+}
+
 function formatDateTime(value: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleString('fr-FR')
@@ -48,21 +56,38 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
  * Checkpoint 1 de l'evolution "locaux scannables" (2026-09) : fiche de
  * consultation d'un local (nombre d'immobilisations rattachées, dernier
  * inventaire). Checkpoint 2 (2026-09) y ajoute le statut "Étiqueté" -
- * generer une etiquette se fait depuis Étiquetage → Locaux, pas ici. La
- * comparaison attendu/scanné, les anomalies et le scan QR lui-même restent
- * des phases suivantes, hors périmètre (voir le prompt détaillé de Sami,
- * sections 6+).
+ * generer une etiquette se fait depuis Étiquetage → Locaux, pas ici.
+ * Checkpoint 3 (2026-09) y ajoute l'ouverture/la reprise d'une session de
+ * scan d'inventaire pour ce local (voir LocationInventorySessionDetailPage)
+ * et l'historique des sessions passées.
  */
 export function LocationDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { hasPermission } = useAuth()
 
+  const queryClient = useQueryClient()
+
   const { data: location, isLoading } = useQuery({ queryKey: ['locations', id], queryFn: () => locationsApi.get(id!) })
   const { data: assets } = useQuery({
     queryKey: ['assets', { locationId: id }],
     queryFn: () => assetsApi.list({ locationId: id!, size: 100 }),
     enabled: Boolean(id),
+  })
+  const { data: sessions } = useQuery({
+    queryKey: ['location-inventory-sessions', { locationId: id }],
+    queryFn: () => locationInventorySessionsApi.list({ locationId: id! }),
+    enabled: Boolean(id),
+  })
+  const openSession = sessions?.find((s) => s.status === 'EN_COURS')
+
+  const openSessionMutation = useMutation({
+    mutationFn: () => locationInventorySessionsApi.open(id!),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['location-inventory-sessions', { locationId: id }] })
+      navigate(`/locaux/${id}/scan/${created.id}`)
+    },
+    onError: (error) => toast.error(extractApiErrorMessage(error)),
   })
 
   if (isLoading || !location) {
@@ -85,6 +110,20 @@ export function LocationDetailPage() {
           <p className="font-mono text-sm text-muted-foreground">{location.qrCode}</p>
         </div>
         <div className="flex gap-2">
+          {hasPermission('INVENTAIRE_EXECUTE') &&
+            (openSession ? (
+              <Button onClick={() => navigate(`/locaux/${id}/scan/${openSession.id}`)}>
+                <ScanLine className="h-4 w-4" /> Reprendre la session en cours
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => openSessionMutation.mutate()}
+                disabled={openSessionMutation.isPending}
+              >
+                <ScanLine className="h-4 w-4" /> Ouvrir une session de scan
+              </Button>
+            ))}
           {hasPermission('REFERENTIEL_MANAGE') && (
             <Button variant="outline" onClick={() => navigate(`/locaux/${location.id}/modifier`)}>
               <Pencil className="h-4 w-4" /> Modifier
@@ -166,6 +205,49 @@ export function LocationDetailPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={statusAssetBadgeVariant(asset.status)}>{ASSET_STATUS_LABEL[asset.status]}</Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sessions de scan</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Ouverte le</TableHead>
+                <TableHead>Ouverte par</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead>Validée le</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(!sessions || sessions.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    Aucune session de scan pour ce local pour l'instant.
+                  </TableCell>
+                </TableRow>
+              )}
+              {sessions?.map((session) => (
+                <TableRow key={session.id}>
+                  <TableCell>
+                    <Link to={`/locaux/${id}/scan/${session.id}`} className="text-primary hover:underline">
+                      {new Date(session.openedAt).toLocaleString('fr-FR')}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{session.openedByName ?? '—'}</TableCell>
+                  <TableCell>
+                    <Badge variant={sessionStatusBadgeVariant(session.status)}>{LOCATION_SESSION_STATUS_LABEL[session.status]}</Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {session.validatedAt ? new Date(session.validatedAt).toLocaleString('fr-FR') : '—'}
                   </TableCell>
                 </TableRow>
               ))}

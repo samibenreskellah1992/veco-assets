@@ -11,6 +11,8 @@ import dz.vecopharm.vecoassets.entity.CampaignStatus;
 import dz.vecopharm.vecoassets.entity.InventoryAnomaly;
 import dz.vecopharm.vecoassets.entity.InventoryCampaign;
 import dz.vecopharm.vecoassets.entity.InventoryScan;
+import dz.vecopharm.vecoassets.entity.LocationInventorySession;
+import dz.vecopharm.vecoassets.entity.LocationSessionStatus;
 import dz.vecopharm.vecoassets.entity.ScanResult;
 import dz.vecopharm.vecoassets.entity.User;
 import dz.vecopharm.vecoassets.exception.BusinessRuleException;
@@ -42,6 +44,7 @@ import java.util.UUID;
 public class InventoryScanService {
 
     private final InventoryCampaignService campaignService;
+    private final LocationInventorySessionService locationSessionService;
     private final InventoryScanRepository scanRepository;
     private final InventoryAnomalyRepository anomalyRepository;
     private final AssetRepository assetRepository;
@@ -52,6 +55,7 @@ public class InventoryScanService {
 
     public InventoryScanService(
             InventoryCampaignService campaignService,
+            LocationInventorySessionService locationSessionService,
             InventoryScanRepository scanRepository,
             InventoryAnomalyRepository anomalyRepository,
             AssetRepository assetRepository,
@@ -61,6 +65,7 @@ public class InventoryScanService {
             AuditRecorder auditRecorder
     ) {
         this.campaignService = campaignService;
+        this.locationSessionService = locationSessionService;
         this.scanRepository = scanRepository;
         this.anomalyRepository = anomalyRepository;
         this.assetRepository = assetRepository;
@@ -81,6 +86,14 @@ public class InventoryScanService {
     @Transactional(readOnly = true)
     public List<InventoryScanDto> historyForAsset(UUID assetId) {
         return scanRepository.findByAssetIdOrderByScannedAtDesc(assetId).stream()
+                .map(scanMapper::toDto)
+                .toList();
+    }
+
+    /** Checkpoint 3 "locaux scannables" (2026-09) : historique de scan d'une session de local. */
+    @Transactional(readOnly = true)
+    public List<InventoryScanDto> historyForLocationSession(UUID sessionId) {
+        return scanRepository.findByLocationSessionIdOrderByScannedAtDesc(sessionId).stream()
                 .map(scanMapper::toDto)
                 .toList();
     }
@@ -135,7 +148,7 @@ public class InventoryScanService {
             scan.setResult(ScanResult.ANOMALIE);
             scan.setComment(request.comment());
             scan = scanRepository.save(scan);
-            InventoryAnomaly anomaly = createAnomaly(campaign, asset, scan, AnomalyType.MAUVAISE_LOCALISATION,
+            InventoryAnomaly anomaly = createAnomaly(campaign, null, asset, scan, AnomalyType.MAUVAISE_LOCALISATION,
                     "Immobilisation scannee hors du perimetre de la campagne (site/zone attendu different)"
                             + (hasText(request.comment()) ? " - " + request.comment() : ""),
                     scannedBy);
@@ -157,7 +170,7 @@ public class InventoryScanService {
         InventoryAnomaly anomaly = null;
         if (request.result() == ScanResult.ANOMALIE) {
             AnomalyType type = request.anomalyType() != null ? request.anomalyType() : AnomalyType.AUTRE;
-            anomaly = createAnomaly(campaign, asset, scan, type, request.comment(), scannedBy);
+            anomaly = createAnomaly(campaign, null, asset, scan, type, request.comment(), scannedBy);
         }
 
         auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "assets", asset.getId(), null, scanMapper.toDto(scan));
@@ -168,9 +181,93 @@ public class InventoryScanService {
         return new ScanResponse(true, scanMapper.toDto(scan), anomaly != null ? anomalyMapper.toDto(anomaly) : null);
     }
 
-    private InventoryAnomaly createAnomaly(InventoryCampaign campaign, Asset asset, InventoryScan scan, AnomalyType type, String description, User reportedBy) {
+    /**
+     * Checkpoint 3 "locaux scannables" (2026-09) : meme logique que {@link
+     * #scan(UUID, ScanRequest)} mais pour une session de scan d'un seul
+     * local plutot qu'une campagne - le perimetre attendu est ici
+     * directement {@code Asset.location} (pas de notion de site/zone,
+     * BR-LOC : le local scanne EST le perimetre). Une immobilisation
+     * scannee alors qu'elle est rattachee a un AUTRE local declenche la
+     * meme anomalie MAUVAISE_LOCALISATION qu'une campagne hors perimetre -
+     * jamais de deplacement automatique de l'immobilisation ici : proposer
+     * un mouvement CHANGEMENT_LOCALISATION/TRANSFERT_INTER_SITE reste une
+     * action separee et explicite (workflow Mouvement existant, Phase 8),
+     * jamais declenchee par ce scan.
+     */
+    @Transactional
+    public ScanResponse scanForLocationSession(UUID sessionId, ScanRequest request) {
+        LocationInventorySession session = locationSessionService.getOrThrow(sessionId);
+        if (session.getStatus() != LocationSessionStatus.EN_COURS) {
+            throw new BusinessRuleException(
+                    "Cette session de scan n'accepte pas de scan dans son statut actuel (" + session.getStatus()
+                            + ") - seule une session EN_COURS peut etre scannee");
+        }
+
+        User scannedBy = currentUser();
+        Instant now = Instant.now();
+        String code = request.assetCode().trim();
+
+        Optional<Asset> maybeAsset = assetRepository.findByAssetCode(code).filter(a -> !a.isDeleted());
+        if (maybeAsset.isEmpty()) {
+            InventoryAnomaly anomaly = new InventoryAnomaly();
+            anomaly.setLocationSession(session);
+            anomaly.setAsset(null);
+            anomaly.setScan(null);
+            anomaly.setAnomalyType(AnomalyType.NON_REFERENCEE);
+            anomaly.setDescription(("Code scanne inconnu ou immobilisation archivee : " + code
+                    + (hasText(request.comment()) ? " - " + request.comment() : "")).trim());
+            anomaly.setReportedBy(scannedBy);
+            anomaly = anomalyRepository.save(anomaly);
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "inventory_anomalies", anomaly.getId(), null, anomalyMapper.toDto(anomaly));
+            return new ScanResponse(false, null, anomalyMapper.toDto(anomaly));
+        }
+
+        Asset asset = maybeAsset.get();
+        boolean inScope = asset.getLocation() != null && session.getLocation().getId().equals(asset.getLocation().getId());
+
+        InventoryScan scan = new InventoryScan();
+        scan.setLocationSession(session);
+        scan.setAsset(asset);
+        scan.setScannedBy(scannedBy);
+        scan.setScannedAt(now);
+
+        if (!inScope) {
+            // L'immobilisation existe mais est rattachee a un autre local :
+            // anomalie de localisation, quel que soit le resultat demande.
+            scan.setResult(ScanResult.ANOMALIE);
+            scan.setComment(request.comment());
+            scan = scanRepository.save(scan);
+            InventoryAnomaly anomaly = createAnomaly(null, session, asset, scan, AnomalyType.MAUVAISE_LOCALISATION,
+                    "Immobilisation scannee hors de ce local (local actuel different de \"" + session.getLocation().getName() + "\")"
+                            + (hasText(request.comment()) ? " - " + request.comment() : ""),
+                    scannedBy);
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "assets", asset.getId(), null, scanMapper.toDto(scan));
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "inventory_anomalies", anomaly.getId(), null, anomalyMapper.toDto(anomaly));
+            return new ScanResponse(true, scanMapper.toDto(scan), anomalyMapper.toDto(anomaly));
+        }
+
+        scan.setResult(request.result());
+        scan.setComment(request.comment());
+        scan = scanRepository.save(scan);
+        asset.setLastInventoryAt(now);
+
+        InventoryAnomaly anomaly = null;
+        if (request.result() == ScanResult.ANOMALIE) {
+            AnomalyType type = request.anomalyType() != null ? request.anomalyType() : AnomalyType.AUTRE;
+            anomaly = createAnomaly(null, session, asset, scan, type, request.comment(), scannedBy);
+        }
+
+        auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "assets", asset.getId(), null, scanMapper.toDto(scan));
+        if (anomaly != null) {
+            auditRecorder.record(AuditAction.INVENTAIRE, "INVENTAIRE", "inventory_anomalies", anomaly.getId(), null, anomalyMapper.toDto(anomaly));
+        }
+        return new ScanResponse(true, scanMapper.toDto(scan), anomaly != null ? anomalyMapper.toDto(anomaly) : null);
+    }
+
+    private InventoryAnomaly createAnomaly(InventoryCampaign campaign, LocationInventorySession locationSession, Asset asset, InventoryScan scan, AnomalyType type, String description, User reportedBy) {
         InventoryAnomaly anomaly = new InventoryAnomaly();
         anomaly.setCampaign(campaign);
+        anomaly.setLocationSession(locationSession);
         anomaly.setAsset(asset);
         anomaly.setScan(scan);
         anomaly.setAnomalyType(type);

@@ -10,6 +10,7 @@ public interface InventoryAnomalyMapper {
 
     @Mapping(target = "campaignId", expression = "java(anomaly.getCampaign() != null ? anomaly.getCampaign().getId() : null)")
     @Mapping(target = "campaignName", expression = "java(anomaly.getCampaign() != null ? anomaly.getCampaign().getName() : null)")
+    @Mapping(target = "locationSessionId", expression = "java(anomaly.getLocationSession() != null ? anomaly.getLocationSession().getId() : null)")
     @Mapping(target = "assetId", expression = "java(anomaly.getAsset() != null ? anomaly.getAsset().getId() : null)")
     @Mapping(target = "assetCode", expression = "java(anomaly.getAsset() != null ? anomaly.getAsset().getAssetCode() : null)")
     @Mapping(target = "assetDesignation", expression = "java(anomaly.getAsset() != null ? anomaly.getAsset().getDesignation() : null)")

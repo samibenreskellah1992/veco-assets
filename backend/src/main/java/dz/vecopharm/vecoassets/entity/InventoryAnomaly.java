@@ -13,8 +13,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 /**
- * Anomalie detectee pendant un inventaire. {@code asset} est nullable
- * (une anomalie NON_REFERENCEE peut ne correspondre a aucun bien connu).
+ * Anomalie detectee pendant un inventaire (campagne OU session de scan de
+ * local - Checkpoint 3, 2026-09, meme discipline que {@link InventoryScan}
+ * : exactement une des deux references {@code campaign}/{@code
+ * locationSession} est renseignee, contrainte CHECK V17). {@code asset}
+ * est nullable (une anomalie NON_REFERENCEE peut ne correspondre a aucun
+ * bien connu).
  */
 @Getter
 @Setter
@@ -23,9 +27,14 @@ import lombok.Setter;
 @Table(name = "inventory_anomalies")
 public class InventoryAnomaly extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "campaign_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "campaign_id")
     private InventoryCampaign campaign;
+
+    /** Checkpoint 3 (2026-09) - voir la javadoc de classe. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_session_id")
+    private LocationInventorySession locationSession;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "asset_id")

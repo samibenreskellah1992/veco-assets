@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -19,6 +20,7 @@ import {
   MOVEMENT_TYPES_REQUIRING_SERVICE,
   MOVEMENT_TYPES_REQUIRING_SITE,
   MOVEMENT_TYPES_REQUIRING_USER,
+  type MovementPrefill,
   type MovementStatus,
   type MovementType,
 } from '@/types/movement'
@@ -121,6 +123,9 @@ function MouvementsContent() {
   const canCreate = hasPermission('MOUVEMENT_CREATE')
   const canValidate = hasPermission('MOUVEMENT_VALIDATE')
   const queryClient = useQueryClient()
+  const routerLocation = useLocation()
+  const navigate = useNavigate()
+  const prefillHandled = useRef(false)
 
   const [statusFilter, setStatusFilter] = useState(ALL)
   const [typeFilter, setTypeFilter] = useState(ALL)
@@ -195,8 +200,16 @@ function MouvementsContent() {
 
   // Reinitialise les champs cible quand le type de mouvement change, pour ne
   // jamais envoyer au backend un champ cible qui appartenait a un type
-  // precedemment selectionne dans le meme formulaire.
+  // precedemment selectionne dans le meme formulaire. Desactive une fois
+  // (suppressToFieldsReset) juste apres un pre-remplissage (Checkpoint 3
+  // "locaux scannables", voir plus bas) : ce changement de movementType-la
+  // arrive AVEC des champs cible deja corrects, qu'il ne faut pas effacer.
+  const suppressToFieldsReset = useRef(false)
   useEffect(() => {
+    if (suppressToFieldsReset.current) {
+      suppressToFieldsReset.current = false
+      return
+    }
     form.setValue('toUserId', NONE)
     form.setValue('toSiteId', NONE)
     form.setValue('toBuildingId', NONE)
@@ -214,6 +227,36 @@ function MouvementsContent() {
     setAssetSearch('')
     form.reset(EMPTY_VALUES)
   }
+
+  // Checkpoint 3 "locaux scannables" (2026-09) : ouverture du dialogue
+  // pre-rempli quand on arrive depuis la page d'une session de scan de
+  // local (bouton "Proposer un changement de localisation" sur une
+  // anomalie MAUVAISE_LOCALISATION) - jamais de creation automatique du
+  // mouvement, seulement le formulaire pre-rempli, l'utilisateur garde la
+  // main pour verifier et confirmer (BR-LOC-006).
+  useEffect(() => {
+    if (prefillHandled.current) return
+    const state = routerLocation.state as { prefill?: MovementPrefill } | null
+    if (state?.prefill) {
+      prefillHandled.current = true
+      suppressToFieldsReset.current = true
+      const prefill = state.prefill
+      form.reset({
+        ...EMPTY_VALUES,
+        assetId: prefill.assetId,
+        movementType: prefill.movementType,
+        toSiteId: prefill.toSiteId ?? NONE,
+        toBuildingId: prefill.toBuildingId ?? NONE,
+        toFloorId: prefill.toFloorId ?? NONE,
+        toZoneId: prefill.toZoneId ?? NONE,
+        toLocationId: prefill.toLocationId ?? NONE,
+        reason: prefill.reason ?? '',
+      })
+      setDialogOpen(true)
+      navigate(routerLocation.pathname, { replace: true, state: null })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const requestMutation = useMutation({
     mutationFn: (values: MovementFormValues) =>

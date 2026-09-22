@@ -10,6 +10,7 @@ public record InventoryAnomalyDto(
         UUID id,
         UUID campaignId,
         String campaignName,
+        UUID locationSessionId,
         UUID assetId,
         String assetCode,
         String assetDesignation,

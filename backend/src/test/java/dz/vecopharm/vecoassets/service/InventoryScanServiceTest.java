@@ -52,6 +52,8 @@ class InventoryScanServiceTest {
     @Mock
     private InventoryCampaignService campaignService;
     @Mock
+    private LocationInventorySessionService locationInventorySessionService;
+    @Mock
     private InventoryScanRepository scanRepository;
     @Mock
     private InventoryAnomalyRepository anomalyRepository;

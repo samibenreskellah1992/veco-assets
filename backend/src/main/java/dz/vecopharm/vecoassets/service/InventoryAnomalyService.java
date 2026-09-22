@@ -91,6 +91,14 @@ public class InventoryAnomalyService {
                 .toList();
     }
 
+    /** Checkpoint 3 "locaux scannables" (2026-09) : anomalies d'une session de scan de local. */
+    @Transactional(readOnly = true)
+    public List<InventoryAnomalyDto> listByLocationSession(UUID locationSessionId) {
+        return anomalyRepository.findByLocationSessionIdOrderByCreatedAtDesc(locationSessionId).stream()
+                .map(anomalyMapper::toDto)
+                .toList();
+    }
+
     @Transactional
     public InventoryAnomalyDto updateStatus(UUID id, AnomalyStatus target) {
         InventoryAnomaly anomaly = getOrThrow(id);

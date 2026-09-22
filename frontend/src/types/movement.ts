@@ -13,6 +13,25 @@ export type MovementType =
 
 export type MovementStatus = 'DEMANDE' | 'VALIDE' | 'EXECUTE' | 'REJETE'
 
+/**
+ * Pre-remplissage du formulaire "Nouveau mouvement" (page Mouvements) au
+ * depart d'un autre ecran - Checkpoint 3 "locaux scannables" (2026-09) :
+ * une anomalie MAUVAISE_LOCALISATION detectee au scan d'un local propose
+ * ce mouvement (CHANGEMENT_LOCALISATION si meme site, TRANSFERT_INTER_SITE
+ * sinon), sans jamais le creer automatiquement - passe en navigation
+ * state React Router (voir LocationInventorySessionDetailPage).
+ */
+export interface MovementPrefill {
+  assetId: string
+  movementType: MovementType
+  toSiteId?: string
+  toBuildingId?: string
+  toFloorId?: string
+  toZoneId?: string
+  toLocationId?: string
+  reason?: string
+}
+
 export interface MovementDto {
   id: string
   assetId: string

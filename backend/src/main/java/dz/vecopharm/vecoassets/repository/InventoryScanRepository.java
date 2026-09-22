@@ -29,4 +29,15 @@ public interface InventoryScanRepository extends JpaRepository<InventoryScan, UU
 
     @Query("select distinct s.asset.id from InventoryScan s where s.campaign.id = :campaignId and s.result = dz.vecopharm.vecoassets.entity.ScanResult.PRESENT")
     Set<UUID> findDistinctPresentAssetIdsByCampaignId(@Param("campaignId") UUID campaignId);
+
+    // Checkpoint 3 "locaux scannables" (2026-09) : meme besoin que ci-dessus,
+    // mais pour une session de scan de local plutot qu'une campagne - voir
+    // LocationInventorySessionService#progress.
+    List<InventoryScan> findByLocationSessionIdOrderByScannedAtDesc(UUID locationSessionId);
+
+    @Query("select distinct s.asset.id from InventoryScan s where s.locationSession.id = :sessionId")
+    Set<UUID> findDistinctAssetIdsByLocationSessionId(@Param("sessionId") UUID sessionId);
+
+    @Query("select distinct s.asset.id from InventoryScan s where s.locationSession.id = :sessionId and s.result = dz.vecopharm.vecoassets.entity.ScanResult.PRESENT")
+    Set<UUID> findDistinctPresentAssetIdsByLocationSessionId(@Param("sessionId") UUID sessionId);
 }

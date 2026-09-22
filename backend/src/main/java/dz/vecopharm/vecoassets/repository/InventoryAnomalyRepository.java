@@ -24,4 +24,11 @@ public interface InventoryAnomalyRepository extends JpaRepository<InventoryAnoma
     List<InventoryAnomaly> findAllByOrderByCreatedAtDesc();
 
     long countByCampaignId(UUID campaignId);
+
+    // Checkpoint 3 "locaux scannables" (2026-09) : meme besoin que ci-dessus,
+    // pour une session de scan de local.
+    @EntityGraph(attributePaths = {"locationSession", "locationSession.location", "asset", "asset.site", "reportedBy"})
+    List<InventoryAnomaly> findByLocationSessionIdOrderByCreatedAtDesc(UUID locationSessionId);
+
+    long countByLocationSessionId(UUID locationSessionId);
 }

@@ -10,6 +10,7 @@ public interface InventoryScanMapper {
 
     @Mapping(target = "campaignId", expression = "java(scan.getCampaign() != null ? scan.getCampaign().getId() : null)")
     @Mapping(target = "campaignName", expression = "java(scan.getCampaign() != null ? scan.getCampaign().getName() : null)")
+    @Mapping(target = "locationSessionId", expression = "java(scan.getLocationSession() != null ? scan.getLocationSession().getId() : null)")
     @Mapping(target = "assetId", expression = "java(scan.getAsset() != null ? scan.getAsset().getId() : null)")
     @Mapping(target = "assetCode", expression = "java(scan.getAsset() != null ? scan.getAsset().getAssetCode() : null)")
     @Mapping(target = "assetDesignation", expression = "java(scan.getAsset() != null ? scan.getAsset().getDesignation() : null)")

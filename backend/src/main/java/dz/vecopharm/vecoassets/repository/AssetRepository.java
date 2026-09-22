@@ -59,6 +59,12 @@ public interface AssetRepository extends JpaRepository<Asset, UUID>, JpaSpecific
     @EntityGraph(value = "Asset.listGraph")
     List<Asset> findBySiteIdAndZoneIdAndDeletedFalse(UUID siteId, UUID zoneId);
 
+    // Checkpoint 3 "locaux scannables" (2026-09) : perimetre attendu d'une
+    // session de scan de local (LocationInventorySessionService) - meme
+    // discipline que les deux methodes ci-dessus pour les campagnes.
+    @EntityGraph(value = "Asset.listGraph")
+    List<Asset> findByLocationIdAndDeletedFalse(UUID locationId);
+
     // Phase 9 (Reporting) : base commune du tableau de bord et des rapports
     // "par site/categorie/etat/service/utilisateur/non etiquetees/non
     // inventoriees" - toujours restreinte au parc actif (non archive), les
