@@ -5,18 +5,22 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/stat_tile.dart';
+import '../../auth/presentation/auth_providers.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final user = ref.watch(authControllerProvider).user;
+    final firstName = (user?.fullName ?? '').split(' ').first;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,7 +36,10 @@ class DashboardScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screenPadding),
         children: [
-          Text('Bonjour, Sami', style: AppTypography.screenTitle),
+          Text(
+            firstName.isNotEmpty ? 'Bonjour, $firstName' : 'Bonjour',
+            style: AppTypography.screenTitle,
+          ),
           const SizedBox(height: AppSpacing.xs),
           Text(
             'Voici un aperçu du parc immobilisé VECOPHARM.',

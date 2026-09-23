@@ -1,28 +1,31 @@
 /// Configuration GoRouter de VECO Assets Mobile.
 ///
-/// État actuel (Phase 3) : une seule route racine vers [MainShell], qui
-/// gère lui-même ses 4 onglets en interne (pas de sous-routes GoRouter
-/// pour l'instant — inutile tant que chaque écran n'a pas de navigation
-/// interne propre, ex. Locaux -> Détail Local).
-///
-/// À la Phase 2 (authentification, en attente des fichiers logo
-/// VECOPHARM), ce fichier gagnera :
-///   - les routes `/splash` et `/login` ;
-///   - une fonction `redirect` basée sur l'état d'authentification
-///     (token JWT présent en flutter_secure_storage ou non) pour protéger
-///     la route racine.
-/// Ne pas anticiper cette logique maintenant : la règle de non-invention
-/// (section 61 du prompt maître) s'applique aussi à l'architecture, pas
-/// seulement aux règles métier.
+/// Navigation volontairement impérative (context.go(...) explicite depuis
+/// Splash/Login/Profil) plutôt qu'un `redirect` GoRouter réactif sur
+/// l'état d'authentification : plus simple à raisonner pour ce périmètre
+/// (une seule route protégée, `/`) et ça évite d'introduire tout de suite
+/// la mécanique `refreshListenable` + Riverpod, plus fragile à écrire à
+/// l'aveugle sans pouvoir exécuter Flutter moi-même. À revisiter si
+/// d'autres routes protégées apparaissent (ex. deep links).
 library;
 
 import 'package:go_router/go_router.dart';
 
+import '../features/auth/presentation/login_screen.dart';
+import '../features/auth/presentation/splash_screen.dart';
 import 'main_shell.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
     GoRoute(
       path: '/',
       builder: (context, state) => const MainShell(),

@@ -71,8 +71,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Le logo VECOPHARM sera ajouté ici une fois les fichiers fournis par
-  # Sami (voir docs/MOBILE-PHASE-0.md section 13, décision 2) :
-  # assets:
-  #   - assets/images/vecopharm_logo.png
-  #   - assets/images/vecopharm_logo_white.png
+  # Logo VECOPHARM fourni par Sami le 23/09/2026 (voir
+  # docs/MOBILE-PHASE-0.md section 13, décision 2).
+  assets:
+    - assets/images/vecopharm_logo.png
+    - assets/images/vecopharm_logo_white.png

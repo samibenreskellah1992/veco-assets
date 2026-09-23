@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/locations/presentation/locations_placeholder_screen.dart';
-import '../features/profile/presentation/profile_placeholder_screen.dart';
+import '../features/profile/presentation/profile_screen.dart';
 import '../features/scanner/presentation/scanner_placeholder_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -27,7 +27,7 @@ class _MainShellState extends State<MainShell> {
     DashboardScreen(),
     ScannerPlaceholderScreen(),
     LocationsPlaceholderScreen(),
-    ProfilePlaceholderScreen(),
+    ProfileScreen(),
   ];
 
   @override
