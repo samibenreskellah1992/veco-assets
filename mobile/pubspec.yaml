@@ -1,0 +1,78 @@
+name: mobile
+description: "VECO Assets Mobile — application compagnon de VECO Assets (VECOPHARM)."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+# Dépendances Phase 1 (section 3 du prompt maître "VECO ASSETS MOBILE").
+# Contraintes en `any` volontairement : je n'ai pas d'environnement Flutter
+# pour résoudre/tester les versions moi-même (comme Maven côté backend).
+# `flutter pub get` sur le poste de Sami fixera les versions réelles dans
+# pubspec.lock ; toute incompatibilité remontée par `flutter analyze` sera
+# corrigée ici de façon itérative.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # État / architecture
+  flutter_riverpod: any
+  riverpod_annotation: any
+
+  # Navigation
+  go_router: any
+
+  # Réseau
+  dio: any
+
+  # Persistance locale (offline-first)
+  drift: any
+  sqlite3_flutter_libs: any
+  path_provider: any
+  path: any
+
+  # Stockage sécurisé (token JWT)
+  flutter_secure_storage: any
+
+  # Scanner QR
+  mobile_scanner: any
+
+  # Médias / permissions / connectivité
+  image_picker: any
+  permission_handler: any
+  connectivity_plus: any
+
+  # Génération PDF (QR/étiquettes, exports)
+  pdf: any
+  printing: any
+
+  # Modèles / sérialisation
+  json_annotation: any
+  freezed_annotation: any
+
+  # Formatage dates/nombres (fr_FR)
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  build_runner: any
+  freezed: any
+  json_serializable: any
+  drift_dev: any
+  riverpod_generator: any
+
+flutter:
+  uses-material-design: true
+
+  # Le logo VECOPHARM sera ajouté ici une fois les fichiers fournis par
+  # Sami (voir docs/MOBILE-PHASE-0.md section 13, décision 2) :
+  # assets:
+  #   - assets/images/vecopharm_logo.png
+  #   - assets/images/vecopharm_logo_white.png
